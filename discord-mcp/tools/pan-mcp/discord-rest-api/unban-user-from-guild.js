@@ -85,8 +85,8 @@ const collectionVariables = [
  * @param {Object} args - Function arguments
  * @returns {Promise<Object>} API response
  */
-const executeFunction = async ({ param, param }) => {
-  return executeRequest(requestDefinition, { param, param }, collectionVariables);
+const executeFunction = async ({ guild_id, user_id }) => {
+  return executeRequest(requestDefinition, { guild_id, user_id }, collectionVariables);
 };
 
 /**

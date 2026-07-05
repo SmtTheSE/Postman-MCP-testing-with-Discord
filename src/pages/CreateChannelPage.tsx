@@ -33,6 +33,8 @@ export function CreateChannelPage() {
           gameName={state.gameName}
           channelName={state.channelName}
           description={state.description}
+          createCategory={state.createCategory}
+          createTextChannel={state.createTextChannel}
           onUpdate={updateField}
           onNext={nextStep}
         />
@@ -42,8 +44,12 @@ export function CreateChannelPage() {
           memberLimit={state.memberLimit}
           bitrate={state.bitrate}
           region={state.region}
+          maxAge={state.maxAge}
+          maxUses={state.maxUses}
           bitrates={wizard.DEFAULT_BITRATES}
           regions={wizard.DEFAULT_REGIONS}
+          maxAges={wizard.DEFAULT_MAX_AGES}
+          maxUsesList={wizard.DEFAULT_MAX_USES}
           onUpdate={updateField}
           onNext={nextStep}
           onBack={prevStep}
