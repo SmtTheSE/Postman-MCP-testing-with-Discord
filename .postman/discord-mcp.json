@@ -1,0 +1,109 @@
+{
+  "name": "Discord REST API — VoiceDrop",
+  "description": "Import this into Postman MCP Generator OR use as API reference. Points directly at Discord API v10 — no custom Express server needed for MCP.",
+  "info": "Select these requests in postman.com/explore/mcp-generator → Discord API → Generate → Download ZIP → add to Cursor MCP",
+  "auth": {
+    "type": "bearer",
+    "note": "Use Bot {{botToken}} for channel creation, or Bearer {{userAccessToken}} for OAuth endpoints"
+  },
+  "requests": [
+    {
+      "name": "OAuth — Get My Authorization",
+      "method": "GET",
+      "url": "https://discord.com/api/v10/oauth2/@me",
+      "headers": [{ "key": "Authorization", "value": "Bearer {{userAccessToken}}" }],
+      "folder": "OAuth",
+      "mcpTool": "get_my_oauth2_authorization"
+    },
+    {
+      "name": "OAuth — Get My Application",
+      "method": "GET",
+      "url": "https://discord.com/api/v10/oauth2/applications/@me",
+      "headers": [{ "key": "Authorization", "value": "Bot {{botToken}}" }],
+      "folder": "OAuth",
+      "mcpTool": "get_my_oauth2_application"
+    },
+    {
+      "name": "Guilds — List My Guilds",
+      "method": "GET",
+      "url": "https://discord.com/api/v10/users/@me/guilds",
+      "headers": [{ "key": "Authorization", "value": "Bearer {{userAccessToken}}" }],
+      "folder": "Guilds"
+    },
+    {
+      "name": "Guilds — List Guild Channels",
+      "method": "GET",
+      "url": "https://discord.com/api/v10/guilds/{{guildId}}/channels",
+      "headers": [{ "key": "Authorization", "value": "Bot {{botToken}}" }],
+      "folder": "Guilds"
+    },
+    {
+      "name": "Channels — Create Voice Channel",
+      "method": "POST",
+      "url": "https://discord.com/api/v10/guilds/{{guildId}}/channels",
+      "headers": [
+        { "key": "Authorization", "value": "Bot {{botToken}}" },
+        { "key": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mode": "raw",
+        "raw": "{\n  \"name\": \"{{channelName}}\",\n  \"type\": 2,\n  \"topic\": \"{{description}}\",\n  \"bitrate\": {{bitrate}},\n  \"user_limit\": {{memberLimit}}\n}"
+      },
+      "folder": "Channels"
+    },
+    {
+      "name": "Channels — Create Text Channel",
+      "method": "POST",
+      "url": "https://discord.com/api/v10/guilds/{{guildId}}/channels",
+      "headers": [
+        { "key": "Authorization", "value": "Bot {{botToken}}" },
+        { "key": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mode": "raw",
+        "raw": "{\n  \"name\": \"{{channelName}}\",\n  \"type\": 0,\n  \"topic\": \"{{topic}}\"\n}"
+      },
+      "folder": "Channels"
+    },
+    {
+      "name": "Channels — Get Channel",
+      "method": "GET",
+      "url": "https://discord.com/api/v10/channels/{{channelId}}",
+      "headers": [{ "key": "Authorization", "value": "Bot {{botToken}}" }],
+      "folder": "Channels"
+    },
+    {
+      "name": "Invites — Create Channel Invite",
+      "method": "POST",
+      "url": "https://discord.com/api/v10/channels/{{channelId}}/invites",
+      "headers": [
+        { "key": "Authorization", "value": "Bot {{botToken}}" },
+        { "key": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mode": "raw",
+        "raw": "{\n  \"max_age\": 86400,\n  \"max_uses\": 0\n}"
+      },
+      "folder": "Invites"
+    }
+  ],
+  "variables": [
+    { "key": "botToken", "value": "", "description": "From generated MCP server .env — one-time bot setup" },
+    { "key": "userAccessToken", "value": "", "description": "OAuth user token (optional, for listing guilds)" },
+    { "key": "guildId", "value": "" },
+    { "key": "channelId", "value": "" },
+    { "key": "channelName", "value": "" },
+    { "key": "description", "value": "" },
+    { "key": "topic", "value": "" },
+    { "key": "memberLimit", "value": "0" },
+    { "key": "bitrate", "value": "64000" }
+  ],
+  "recommendedMcpGeneratorSelection": [
+    "OAuth → get my oauth2 authorization",
+    "OAuth → get my oauth2 application",
+    "Guilds → list guild channels",
+    "Guilds → create guild channel (voice type 2)",
+    "Channels → create channel invite",
+    "Channels → get channel"
+  ]
+}

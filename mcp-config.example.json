@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "discord-rest-api": {
+      "command": "node",
+      "args": ["/Users/m2/Desktop/PostMan MCP discord group chat auto generate app/discord-mcp/mcpServer.js"],
+      "env": {
+        "BOT_TOKEN": "your_discord_bot_token"
+      }
+    }
+  }
+}
