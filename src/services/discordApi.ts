@@ -25,6 +25,10 @@ export interface CreateChannelParams {
   memberLimit: number
   bitrate: number
   region: string
+  createCategory: boolean
+  createTextChannel: boolean
+  maxAge: number
+  maxUses: number
 }
 
 export interface CreateChannelResult {

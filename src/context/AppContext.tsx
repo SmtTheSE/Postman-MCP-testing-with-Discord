@@ -159,6 +159,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         memberLimit: wizard.state.memberLimit,
         bitrate: wizard.state.bitrate,
         region: wizard.state.region,
+        createCategory: wizard.state.createCategory,
+        createTextChannel: wizard.state.createTextChannel,
+        maxAge: wizard.state.maxAge,
+        maxUses: wizard.state.maxUses,
       })
 
       setRecentChannels((prev) => {

@@ -93,10 +93,10 @@ const collectionVariables = [
  * @param {Object} args - Function arguments
  * @returns {Promise<Object>} API response
  */
-const executeFunction = async ({ channel_id, max_age = 86400 }) => {
+const executeFunction = async ({ channel_id, max_age = 86400, max_uses = 0 }) => {
   const def = JSON.parse(JSON.stringify(requestDefinition))
-  def.request.body.raw = JSON.stringify({ max_age: Number(max_age) })
-  return executeRequest(def, { channel_id, max_age: String(max_age) }, collectionVariables)
+  def.request.body.raw = JSON.stringify({ max_age: Number(max_age), max_uses: Number(max_uses) })
+  return executeRequest(def, { channel_id, max_age: String(max_age), max_uses: String(max_uses) }, collectionVariables)
 }
 
 /**
@@ -119,9 +119,13 @@ export const apiTool = {
           'max_age': {
             type: 'number',
             description: 'The max_age parameter'
+          },
+          'max_uses': {
+            type: 'number',
+            description: 'The max_uses parameter'
           }
         },
-        required: ['channel_id', 'max_age']
+        required: ['channel_id']
       }
     }
   }
