@@ -39,6 +39,7 @@ server/lavalink/logs/
 
 # Local dev patch scripts
 patch_*.py
+patch_*.cjs
 
 # Editor agent cache
 .kilo/
