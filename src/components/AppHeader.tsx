@@ -1,14 +1,18 @@
+import { Link, useLocation } from 'react-router-dom'
 import { LogOut } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { userAvatarUrl } from '../services/discordApi'
+import { DiscordSignInButton } from './DiscordSignInButton'
 
-const STEPS = ['New Channel', 'Voice Settings', 'Choose Server'] as const
-
+const CREATE_STEPS = ['New Channel', 'Voice Settings', 'Choose Server'] as const
 const FALLBACK_AVATAR = 'https://cdn.discordapp.com/embed/avatars/0.png'
 
 export function AppHeader() {
   const { wizard, user, authLoading, login, logout } = useApp()
+  const location = useLocation()
+  const isManage = location.pathname === '/manage'
+  const isJukebox = location.pathname === '/jukebox'
   const step = wizard.state.step
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null)
 
@@ -19,19 +23,21 @@ export function AppHeader() {
     setAvatarSrc(null)
   }, [user?.id, user?.avatar])
 
+  const title = isManage ? 'Server Manage' : isJukebox ? 'Jukebox' : CREATE_STEPS[step - 1]
+
   return (
     <header className="mb-8">
       <div className="header-bar">
         <div className="header-brand">
-          <div className="w-10 h-10 rounded-[12px] bg-gradient-to-br from-[#007AFF] to-[#5856D6] flex items-center justify-center shadow-sm shrink-0">
-            <span className="text-white text-[15px] font-bold">V</span>
+          <div className="brand-mark" aria-hidden>
+            <span className="brand-mark-letter">G</span>
           </div>
-          <span className="text-[17px] font-semibold text-black tracking-tight truncate">VoiceDrop</span>
+          <span className="brand-name truncate">Goofy Discord</span>
         </div>
 
         <div className="header-actions">
           {authLoading ? (
-            <div className="w-[38px] h-[38px] rounded-full bg-[#E5E5EA] animate-pulse" />
+            <div className="w-[38px] h-[38px] rounded-full bg-white/40 animate-pulse border border-white/50" />
           ) : user ? (
             <div className="profile-menu">
               <img
@@ -56,24 +62,40 @@ export function AppHeader() {
               </button>
             </div>
           ) : (
-            <button type="button" onClick={login} className="ios-btn-signin">
-              Sign in
-            </button>
+            <DiscordSignInButton onClick={login} variant="icon" />
           )}
         </div>
       </div>
 
-      <h1 className="ios-large-title mb-5">{STEPS[step - 1]}</h1>
+      {user && (
+        <nav className="app-nav" aria-label="Main">
+          <Link to="/" className={`app-nav-link ${!isManage && !isJukebox ? 'app-nav-link-active' : ''}`}>
+            Create
+          </Link>
+          <Link to="/manage" className={`app-nav-link ${isManage ? 'app-nav-link-active' : ''}`}>
+            Manage
+          </Link>
+          <Link to="/jukebox" className={`app-nav-link ${isJukebox ? 'app-nav-link-active' : ''}`}>
+            Jukebox
+          </Link>
+        </nav>
+      )}
 
-      <div className="flex items-center justify-center gap-2.5">
-        {[1, 2, 3].map((s) => (
-          <div
-            key={s}
-            className={`h-2 rounded-full transition-all duration-300 ${
-              s === step ? 'w-8 bg-[#007AFF]' : s < step ? 'w-2 bg-[#007AFF]/35' : 'w-2 bg-[#E5E5EA]'
-            }`}
-          />
-        ))}
+      <div className="page-title-block">
+        <h1 className="ios-large-title">{title}</h1>
+
+        {!isManage && !isJukebox && (
+          <div className="step-dots">
+            {[1, 2, 3].map((s) => (
+              <div
+                key={s}
+                className={`step-dot ${
+                  s === step ? 'step-dot-active' : s < step ? 'step-dot-done' : 'step-dot-pending'
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </header>
   )

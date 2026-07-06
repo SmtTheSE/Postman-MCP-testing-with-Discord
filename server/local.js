@@ -10,6 +10,10 @@ import authMe from '../api/auth/me.js'
 import authLogout from '../api/auth/logout.js'
 import authStatus from '../api/auth/status.js'
 import guilds from '../api/guilds.js'
+import channels from '../api/channels.js'
+import invites from '../api/invites.js'
+import * as musicApi from '../api/music.js'
+import { startMusicBot } from '../lib/music/bot.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../discord-mcp/.env') })
@@ -29,6 +33,18 @@ app.get('/api/auth/me', (req, res) => authMe(req, res))
 app.get('/api/auth/status', (req, res) => authStatus(req, res))
 app.post('/api/auth/logout', (req, res) => authLogout(req, res))
 app.get('/api/guilds', (req, res) => guilds(req, res))
+app.all('/api/channels', (req, res) => channels(req, res))
+app.all('/api/invites', (req, res) => invites(req, res))
+app.post('/api/music/join', (req, res) => musicApi.join(req, res))
+app.post('/api/music/play', (req, res) => musicApi.play(req, res))
+app.post('/api/music/skip', (req, res) => musicApi.skip(req, res))
+app.post('/api/music/pause', (req, res) => musicApi.pause(req, res))
+app.post('/api/music/leave', (req, res) => musicApi.leave(req, res))
+app.get('/api/music/queue', (req, res) => musicApi.queue(req, res))
+
+startMusicBot().catch((err) => {
+  console.error('[music] failed to start:', err.message)
+})
 
 app.listen(PORT, () => {
   console.log(`API (Postman MCP + OAuth) → http://localhost:${PORT}/api/health`)

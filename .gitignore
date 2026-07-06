@@ -30,3 +30,15 @@ discord-mcp/node_modules
 
 # Build output
 *.tsbuildinfo
+
+# Lavalink runtime (download via server/upgrade-lavalink.sh)
+server/lavalink/Lavalink.jar
+server/lavalink/Lavalink.jar.*
+server/lavalink/plugins/*.jar
+server/lavalink/logs/
+
+# Local dev patch scripts
+patch_*.py
+
+# Editor agent cache
+.kilo/

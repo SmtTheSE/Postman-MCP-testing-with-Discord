@@ -5,6 +5,7 @@
  * ensuring full compatibility with Postman collections.
  */
 import { executeRequest } from '../../../lib/postmanExecutor.js';
+import { clampVoiceBitrate } from '../../../../lib/voiceBitrate.js';
 
 // Original Postman request definition
 const requestDefinition = {
@@ -111,7 +112,7 @@ const executeFunction = async ({
   }
 
   if (Number(type) === 2) {
-    body.bitrate = Number(bitrate)
+    body.bitrate = clampVoiceBitrate(bitrate)
     body.user_limit = Number(user_limit)
     const region = rtc_region != null ? String(rtc_region).trim() : ''
     if (region) body.rtc_region = region

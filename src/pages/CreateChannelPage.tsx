@@ -3,19 +3,29 @@ import { Step1GameDetails } from '../components/Step1GameDetails'
 import { Step2VoiceSettings } from '../components/Step2VoiceSettings'
 import { Step3GuildPrompt } from '../components/Step3GuildPrompt'
 import { JoinLinkShare } from '../components/JoinLinkShare'
-import { Alert } from '../components/ui/Alert'
+import { CustomAlert } from '../components/ui/Alert'
+import { saveUserPrefs } from '../lib/userPrefs'
 
 export function CreateChannelPage() {
-  const { wizard, result, isSubmitting, error, submitChannel, clearResult } = useApp()
+  const { wizard, result, isSubmitting, error, submitChannel, clearResult, recentChannels, recreateFromRecent } =
+    useApp()
   const { state, updateField, nextStep, prevStep } = wizard
+
+  const lastRecent = recentChannels[0]
+
+  const handleRecreateSimilar = () => {
+    if (lastRecent) recreateFromRecent(lastRecent)
+  }
 
   if (result) {
     return (
       <JoinLinkShare
         inviteUrl={result.inviteUrl}
-        channelName={state.channelName}
+        channelName={state.channelName || result.channel.name}
         gameName={state.gameName}
         onCreateAnother={clearResult}
+        onRecreateSimilar={lastRecent ? handleRecreateSimilar : undefined}
+        isSubmitting={isSubmitting}
       />
     )
   }
@@ -24,7 +34,7 @@ export function CreateChannelPage() {
     <>
       {error && (
         <div className="mb-6">
-          <Alert variant="error">{error}</Alert>
+          <CustomAlert variant="error" title="Couldn't create channel" message={error} operation="create" />
         </div>
       )}
 
@@ -37,6 +47,7 @@ export function CreateChannelPage() {
           createTextChannel={state.createTextChannel}
           onUpdate={updateField}
           onNext={nextStep}
+          onSkipToServer={() => updateField('step', 3)}
         />
       )}
       {state.step === 2 && (
@@ -63,6 +74,7 @@ export function CreateChannelPage() {
           onSelectGuild={(id, name) => {
             updateField('guildId', id)
             updateField('guildName', name)
+            saveUserPrefs({ guildId: id, guildName: name })
           }}
           onBack={prevStep}
           onGoToDetails={() => updateField('step', 1)}

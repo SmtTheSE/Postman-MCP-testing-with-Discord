@@ -1,9 +1,7 @@
-import { filterManageableGuilds, formatRateLimitError, isRateLimitError } from '../lib/discordOAuth.js'
-import { listGuildsViaMcp } from '../lib/mcpRunner.js'
+import { filterManageableGuilds, formatDiscordApiError, formatRateLimitError, isRateLimitError } from '../lib/discordOAuth.js'
+import { requireDiscordToken } from '../lib/apiAuth.js'
+import { getUserGuilds } from '../lib/guildListCache.js'
 import { getSession } from '../lib/session.js'
-
-const GUILD_CACHE_TTL_MS = 30_000
-const guildCache = new Map()
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -11,18 +9,10 @@ export default async function handler(req, res) {
   }
 
   try {
+    const accessToken = await requireDiscordToken(req, res)
     const session = await getSession(req)
-    if (!session?.accessToken) {
-      return res.status(401).json({ error: 'Sign in with Discord first' })
-    }
 
-    const cacheKey = session.userId || session.accessToken.slice(0, 16)
-    const cached = guildCache.get(cacheKey)
-    if (cached && Date.now() - cached.at < GUILD_CACHE_TTL_MS) {
-      return res.status(200).json(cached.payload)
-    }
-
-    const guilds = await listGuildsViaMcp(session.accessToken)
+    const guilds = await getUserGuilds(accessToken, session?.userId)
     const manageable = filterManageableGuilds(guilds)
     const seen = new Set()
     const unique = manageable.filter((g) => {
@@ -37,6 +27,8 @@ export default async function handler(req, res) {
       icon: g.icon,
       owner: g.owner,
       permissions: g.permissions,
+      approximate_member_count: g.approximate_member_count,
+      approximate_presence_count: g.approximate_presence_count,
     }))
 
     const payload = {
@@ -44,14 +36,16 @@ export default async function handler(req, res) {
       total: guilds.length,
       manageable: enriched.length,
     }
-    guildCache.set(cacheKey, { at: Date.now(), payload })
 
     res.status(200).json(payload)
   } catch (err) {
     console.error('Guild list error:', err)
-    const message = err.message || 'Failed to list guilds via Postman MCP'
-    res.status(isRateLimitError(message) ? 429 : err.status || 500).json({
-      error: isRateLimitError(message) ? formatRateLimitError(message) : message,
+    const raw = err.message || 'Failed to list guilds via Postman MCP'
+    const message = formatDiscordApiError(raw, err.code)
+    const isRL = isRateLimitError(raw)
+    res.status(isRL ? 429 : err.status || 500).json({
+      error: isRL ? formatRateLimitError(raw) : message,
+      code: err.code,
       details: err.details,
     })
   }

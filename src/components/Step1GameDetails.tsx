@@ -1,3 +1,7 @@
+import { useApp } from '../context/AppContext'
+import { GameQuickPicks } from './GameQuickPicks'
+import type { GamePreset } from '../lib/gamePresets'
+
 interface Step1Props {
   gameName: string
   channelName: string
@@ -6,13 +10,30 @@ interface Step1Props {
   createTextChannel: boolean
   onUpdate: (field: string, value: string | boolean) => void
   onNext: () => void
+  onSkipToServer: () => void
 }
 
-export function Step1GameDetails({ gameName, channelName, description, createCategory, createTextChannel, onUpdate, onNext }: Step1Props) {
+export function Step1GameDetails({
+  gameName,
+  channelName,
+  description,
+  createCategory,
+  createTextChannel,
+  onUpdate,
+  onNext,
+  onSkipToServer,
+}: Step1Props) {
+  const { applyGamePreset } = useApp()
   const canProceed = gameName.trim() && channelName.trim()
+
+  const handlePreset = (preset: GamePreset) => {
+    applyGamePreset(preset)
+  }
 
   return (
     <div className="page-stack">
+      <GameQuickPicks selectedGame={gameName} onSelect={handlePreset} />
+
       <section>
         <p className="ios-section-title">Channel details</p>
         <div className="ios-group">
@@ -55,7 +76,7 @@ export function Step1GameDetails({ gameName, channelName, description, createCat
           <div className="ios-group-row flex items-center justify-between gap-4">
             <div>
               <span className="text-[17px] text-black font-medium block">Add text chat</span>
-              <span className="text-[13px] text-[#8E8E93] block mt-0.5">Creates a matching #text-channel</span>
+              <span className="text-[13px] text-muted block mt-0.5">Creates a matching #text-channel</span>
             </div>
             <input
               type="checkbox"
@@ -67,7 +88,7 @@ export function Step1GameDetails({ gameName, channelName, description, createCat
           <div className="ios-group-row flex items-center justify-between gap-4">
             <div>
               <span className="text-[17px] text-black font-medium block">Group in category</span>
-              <span className="text-[13px] text-[#8E8E93] block mt-0.5">Keeps the new channels organized</span>
+              <span className="text-[13px] text-muted block mt-0.5">Keeps the new channels organized</span>
             </div>
             <input
               type="checkbox"
@@ -81,7 +102,15 @@ export function Step1GameDetails({ gameName, channelName, description, createCat
 
       <div className="btn-stack">
         <button type="button" onClick={onNext} disabled={!canProceed} className="ios-btn-primary">
-          Continue
+          Voice settings
+        </button>
+        <button
+          type="button"
+          onClick={onSkipToServer}
+          disabled={!canProceed}
+          className="ios-btn-secondary"
+        >
+          Skip to server →
         </button>
       </div>
     </div>

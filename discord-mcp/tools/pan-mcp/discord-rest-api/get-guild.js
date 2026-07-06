@@ -85,8 +85,16 @@ const collectionVariables = [
  * @param {Object} args - Function arguments
  * @returns {Promise<Object>} API response
  */
-const executeFunction = async ({ guild_id }) => {
-  return executeRequest(requestDefinition, { guild_id }, collectionVariables);
+const executeFunction = async ({ guild_id, with_counts = true }) => {
+  const def = JSON.parse(JSON.stringify(requestDefinition))
+  if (with_counts) {
+    def.request.url.query = [{ key: 'with_counts', value: 'true' }]
+    const pathStr = def.request.url.path.join('/')
+    def.request.url.raw = `${def.request.url.host[0]}/${pathStr}?with_counts=true`
+  } else if (Array.isArray(def.request.url.query)) {
+    def.request.url.query = def.request.url.query.filter((q) => !String(q?.value).includes('null'))
+  }
+  return executeRequest(def, { guild_id, with_counts: with_counts ? 'true' : 'false' }, collectionVariables);
 };
 
 /**

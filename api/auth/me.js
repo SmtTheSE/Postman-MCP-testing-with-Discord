@@ -7,8 +7,18 @@ export default async function handler(req, res) {
 
   try {
     const session = await getSession(req)
-    if (!session) {
-      return res.status(401).json({ authenticated: false })
+    if (!session?.userId) {
+      return res.status(401).json({ authenticated: false, code: 'NOT_AUTHENTICATED' })
+    }
+
+    const hasDiscordSession = Boolean(session.accessToken || session.refreshToken)
+    if (!hasDiscordSession) {
+      return res.status(401).json({
+        authenticated: false,
+        needsLogin: true,
+        code: 'NOT_AUTHENTICATED',
+        message: 'Session missing Discord tokens — sign in again.',
+      })
     }
 
     res.status(200).json({

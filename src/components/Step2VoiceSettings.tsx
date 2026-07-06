@@ -35,7 +35,7 @@ export function Step2VoiceSettings({
           <div className="ios-group-row">
             <div className="flex items-center justify-between mb-5">
               <span className="text-[17px] text-black font-medium">Member limit</span>
-              <span className="text-[17px] text-[#007AFF] font-semibold tabular-nums">
+              <span className="text-[17px] text-accent font-semibold tabular-nums">
                 {memberLimit === 0 ? 'No limit' : memberLimit}
               </span>
             </div>
@@ -75,7 +75,7 @@ export function Step2VoiceSettings({
             <select
               value={region}
               onChange={(e) => onUpdate('region', e.target.value)}
-              className="ios-input text-right text-[#007AFF] font-semibold max-w-[55%]"
+              className="ios-input text-right text-accent font-semibold max-w-[55%]"
             >
               {regions.map((r) => (
                 <option key={r.value} value={r.value}>
@@ -95,7 +95,7 @@ export function Step2VoiceSettings({
             <select
               value={maxAge}
               onChange={(e) => onUpdate('maxAge', parseInt(e.target.value, 10))}
-              className="ios-input text-right text-[#007AFF] font-semibold max-w-[55%]"
+              className="ios-input text-right text-accent font-semibold max-w-[55%]"
             >
               {maxAges.map((r) => (
                 <option key={r.value} value={r.value}>
@@ -109,7 +109,7 @@ export function Step2VoiceSettings({
             <select
               value={maxUses}
               onChange={(e) => onUpdate('maxUses', parseInt(e.target.value, 10))}
-              className="ios-input text-right text-[#007AFF] font-semibold max-w-[55%]"
+              className="ios-input text-right text-accent font-semibold max-w-[55%]"
             >
               {maxUsesList.map((r) => (
                 <option key={r.value} value={r.value}>

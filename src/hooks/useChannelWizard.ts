@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
+import { clampVoiceBitrate, VOICE_BITRATE_DEFAULT, VOICE_BITRATE_OPTIONS } from '../lib/voiceBitrate'
 
 interface WizardState {
   step: 1 | 2 | 3
@@ -18,11 +19,7 @@ interface WizardState {
 
 const STORAGE_KEY = 'voicedrop:wizard'
 
-const DEFAULT_BITRATES = [
-  { label: '64 kbps', value: 64000 },
-  { label: '96 kbps', value: 96000 },
-  { label: '128 kbps', value: 128000 },
-]
+const DEFAULT_BITRATES = [...VOICE_BITRATE_OPTIONS]
 
 const DEFAULT_MAX_AGES = [
   { label: 'Never', value: 0 },
@@ -62,12 +59,12 @@ const initialState: WizardState = {
   channelName: '',
   description: '',
   memberLimit: 0,
-  bitrate: 64000,
+  bitrate: VOICE_BITRATE_DEFAULT,
   region: '',
   guildId: '',
   guildName: '',
-  createCategory: false,
-  createTextChannel: false,
+  createCategory: true,
+  createTextChannel: true,
   maxAge: 86400,
   maxUses: 0,
 }
@@ -77,7 +74,9 @@ function loadStoredState(): WizardState {
     const raw = sessionStorage.getItem(STORAGE_KEY)
     if (!raw) return initialState
     const parsed = JSON.parse(raw) as Partial<WizardState>
-    return { ...initialState, ...parsed }
+    const merged = { ...initialState, ...parsed }
+    merged.bitrate = clampVoiceBitrate(merged.bitrate)
+    return merged
   } catch {
     return initialState
   }

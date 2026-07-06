@@ -3,7 +3,6 @@ import {
   fetchDiscordUser,
   getRedirectUri,
 } from '../../lib/discordOAuth.js'
-import { getOAuthAuthorizationViaMcp } from '../../lib/mcpRunner.js'
 import { createSession } from '../../lib/session.js'
 
 export default async function handler(req, res) {
@@ -24,11 +23,14 @@ export default async function handler(req, res) {
     const tokens = await exchangeCodeForToken(code, redirectUri)
     const user = await fetchDiscordUser(tokens.access_token)
 
-    // Validate token via Postman MCP OAuth tool
-    await getOAuthAuthorizationViaMcp(tokens.access_token)
+    // Validate token via Discord REST (same endpoint as MCP get_my_oauth2_authorization)
+    const { validateUserToken } = await import('../../lib/discordUserApi.js')
+    await validateUserToken(tokens.access_token)
 
     await createSession(res, {
       accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      tokenExpiresAt: Date.now() + (tokens.expires_in || 604800) * 1000,
       userId: user.id,
       username: user.username,
       globalName: user.global_name || user.username,

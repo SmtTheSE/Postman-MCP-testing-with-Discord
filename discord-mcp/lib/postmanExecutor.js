@@ -134,6 +134,26 @@ function prepareRequestDefinition(requestDef, variables = {}) {
   return def
 }
 
+const BLOCKED_ENV_WHEN_USER_AUTH = new Set([
+  'BOT_TOKEN',
+  'USER_TOKEN',
+  'bot_token',
+  'user_token',
+])
+
+function normalizeBearerToken(token) {
+  return String(token || '').replace(/^Bearer\s+/i, '').trim()
+}
+
+function applyUserAuthorization(item, rawToken) {
+  item.request.auth = null
+  if (item.request.headers?.members) {
+    item.request.headers.members = item.request.headers.members.filter(
+      (h) => !h.key || h.key.toLowerCase() !== 'authorization',
+    )
+  }
+  item.request.addHeader({ key: 'Authorization', value: `Bearer ${rawToken}` })
+}
 /**
  * Executes a Postman request definition
  */
@@ -141,17 +161,10 @@ export async function executeRequest(requestDef, variables = {}, collectionVaria
   return new Promise((resolve, reject) => {
     const item = new Item(prepareRequestDefinition(requestDef, variables));
 
-    // Inject Authorization: Bearer header if gateway forwarded an auth token
-    const authToken = variables.__auth_token || process.env.__MCP_AUTH_TOKEN;
+    const authToken = normalizeBearerToken(variables.__auth_token || process.env.__MCP_AUTH_TOKEN)
     if (authToken) {
-      const hasAuth = item.request.headers.members &&
-        item.request.headers.members.some(h => h.key && h.key.toLowerCase() === 'authorization');
-      if (!hasAuth) {
-        item.request.addHeader({ key: 'Authorization', value: `Bearer ${authToken}` });
-      }
+      applyUserAuthorization(item, authToken)
     }
-
-    const runner = new Runtime.Runner();
 
     // Build environment values with proper precedence
     // Order: collection vars < env vars < function params
@@ -170,27 +183,32 @@ export async function executeRequest(requestDef, variables = {}, collectionVaria
     // These will override collection variables with the same name
     // Also add name variations to handle inconsistent variable naming in collections
     Object.entries(process.env).forEach(([key, value]) => {
-      if (value !== undefined && value !== '') {
-        // Add original key
-        envValues.push({ key, value, type: 'text' });
-
-        // Generate and add name variations for better compatibility
-        const variations = generateNameVariations(key);
-        variations.forEach((variantKey) => {
-          if (variantKey !== key) {
-            envValues.push({ key: variantKey, value, type: 'text' });
-          }
-        });
+      if (value === undefined || value === '') return
+      if (authToken && BLOCKED_ENV_WHEN_USER_AUTH.has(key)) return
+      if (authToken && key === 'pan_mcp_api_key') {
+        envValues.push({ key, value: authToken, type: 'text' })
+        return
       }
-    });
+
+      envValues.push({ key, value, type: 'text' })
+
+      const variations = generateNameVariations(key)
+      variations.forEach((variantKey) => {
+        if (variantKey !== key) {
+          if (authToken && BLOCKED_ENV_WHEN_USER_AUTH.has(variantKey)) return
+          envValues.push({ key: variantKey, value, type: 'text' })
+        }
+      })
+    })
 
     // 3. Add runtime variables (function parameters) - highest precedence
-    // These override both collection and env vars
     Object.entries(variables).forEach(([key, value]) => {
       if (value !== undefined) {
-        envValues.push({ key, value: String(value), type: 'text' });
+        envValues.push({ key, value: String(value), type: 'text' })
       }
-    });
+    })
+
+    const runner = new Runtime.Runner()
 
     const runOptions = {
       environment: {
