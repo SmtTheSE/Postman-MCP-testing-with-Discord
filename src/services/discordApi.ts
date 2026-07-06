@@ -93,6 +93,16 @@ export interface AuthStatus {
   message: string | null
 }
 
+export interface MusicHistoryResult {
+  success: boolean
+  history: MusicTrack[]
+}
+
+export interface MusicFavoritesResult {
+  success: boolean
+  favorites: MusicTrack[]
+}
+
 export interface MusicTrack {
   encoded: string
   title: string
@@ -247,6 +257,41 @@ export const discordApi = {
 
   getMusicQueue: async (guildId: string, channelId: string): Promise<MusicQueueStatus> => {
     const { data } = await api.get('/music/queue', { params: { guild_id: guildId, channel_id: channelId } })
+    return data
+  },
+
+  getHistory: async (guildId: string, channelId: string): Promise<MusicHistoryResult> => {
+    const { data } = await api.get('/music/history', { params: { guild_id: guildId, channel_id: channelId } })
+    return data
+  },
+
+  requeueHistory: async (guildId: string, channelId: string, track: MusicTrack): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/history/requeue', { guildId, channelId, track })
+    return data
+  },
+
+  getFavorites: async (guildId: string, channelId: string): Promise<MusicFavoritesResult> => {
+    const { data } = await api.get('/music/favorites', { params: { guild_id: guildId, channel_id: channelId } })
+    return data
+  },
+
+  addFavorite: async (guildId: string, channelId: string, track: MusicTrack): Promise<MusicFavoritesResult> => {
+    const { data } = await api.post('/music/favorites', { guildId, channelId, track })
+    return data
+  },
+
+  removeFavorite: async (guildId: string, channelId: string, encoded: string): Promise<MusicFavoritesResult> => {
+    const { data } = await api.delete('/music/favorites', { data: { guildId, channelId, encoded } })
+    return data
+  },
+
+  playFavorite: async (guildId: string, channelId: string, track: MusicTrack): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/favorites/play', { guildId, channelId, track })
+    return data
+  },
+
+  playNextFavorite: async (guildId: string, channelId: string, track: MusicTrack): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/favorites/play-next', { guildId, channelId, track })
     return data
   },
 

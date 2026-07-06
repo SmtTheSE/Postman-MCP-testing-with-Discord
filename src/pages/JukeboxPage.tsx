@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Music2, Pause, Play, SkipForward, LogOut as LeaveIcon, Radio, Shuffle, Trash2 } from 'lucide-react'
+import { Music2, Pause, Play, SkipForward, LogOut as LeaveIcon, Radio, Shuffle, Trash2, Star } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { discordApi, guildIconUrl, voiceChannelDeepLink, type VoiceChannel } from '../services/discordApi'
 import { loadUserPrefs, saveUserPrefs } from '../lib/userPrefs'
@@ -42,6 +42,12 @@ export function JukeboxPage() {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<MusicQueueStatus | null>(null)
   const [dismissedError, setDismissedError] = useState<string | null>(null)
+  const [activityLog, _setActivityLog] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState<'queue' | 'history' | 'favorites'>('queue')
+  const [history, _setHistory] = useState<any[]>([])
+  const [favorites, setFavorites] = useState<any[]>([])
+  const [historyLoading, _setHistoryLoading] = useState(false)
+  const [favoritesLoading, _setFavoritesLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -335,7 +341,18 @@ export function JukeboxPage() {
 
       {guildId && (
         <section>
-          <p className="ios-section-title">Voice channel</p>
+          <div className="flex justify-between items-center pr-2">
+            <p className="ios-section-title">Voice channel</p>
+            {channelId && (
+              <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                  connectionState === 'live' ? 'bg-green-100 text-green-700' :
+                  connectionState === 'reconnecting' ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-gray-100 text-gray-500'
+              }`}>
+                {connectionState === 'live' ? 'Live' : connectionState === 'reconnecting' ? 'Reconnecting...' : 'Polling'}
+              </span>
+            )}
+          </div>
           <div className="jukebox-card">
             {loading ? (
               <p className="text-[16px] text-muted">Loading channels…</p>
@@ -513,9 +530,36 @@ export function JukeboxPage() {
             </div>
           </section>
 
+
+          {/* Live Activity (Compact) */}
+          {activityLog.length > 0 && (
+             <section className="mb-4">
+                <p className="text-[12px] font-semibold text-muted uppercase tracking-wider mb-2 px-1">Live Activity</p>
+                <div className="bg-white/60 rounded-xl p-3 shadow-sm border border-black/[0.05] max-h-[120px] overflow-y-auto space-y-2">
+                   {activityLog.map((log, i) => (
+                      <div key={i} className="flex items-center text-[13px]">
+                         <span className="text-muted mr-2">{new Date(log.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                         <span className="font-semibold mr-1">{log.username}</span>
+                         <span className="text-black/80">{log.action}</span>
+                         {log.detail && <span className="text-muted ml-1 truncate">— {log.detail}</span>}
+                      </div>
+                   ))}
+                </div>
+             </section>
+          )}
+
+          <div className="flex gap-2 px-1 mb-3">
+             <button onClick={() => setActiveTab('queue')} className={`ios-btn-secondary py-1 px-3 text-xs ${activeTab === 'queue' ? 'bg-black text-white' : ''}`}>Queue</button>
+             <button onClick={() => setActiveTab('history')} className={`ios-btn-secondary py-1 px-3 text-xs ${activeTab === 'history' ? 'bg-black text-white' : ''}`}>History</button>
+             <button onClick={() => setActiveTab('favorites')} className={`ios-btn-secondary py-1 px-3 text-xs ${activeTab === 'favorites' ? 'bg-black text-white' : ''}`}>Favorites</button>
+          </div>
+
           <section>
-            <p className="ios-section-title">Now playing</p>
+            <p className="ios-section-title">{activeTab === 'queue' ? 'Now playing' : activeTab === 'history' ? 'Recently Played' : 'Your Favorites'}</p>
+
             <div className="jukebox-card">
+              {activeTab === 'queue' && (
+                 <>
               <div className="jukebox-now-head">
                 <div className="jukebox-controls">
                   <button
@@ -570,7 +614,20 @@ export function JukeboxPage() {
                 </p>
               )}
 
-              {status?.queue && status.queue.length > 0 && (
+              <div className="mt-3 flex justify-end">
+                {status?.nowPlaying && (
+                  <button type="button" onClick={() => runAction('AddFav', async () => {
+                      if (status.nowPlaying) await discordApi.addFavorite(guildId, channelId, status.nowPlaying)
+                  })} className="text-xs font-medium text-amber-600 flex items-center bg-amber-50 px-2 py-1 rounded">
+                     <Star className="w-3 h-3 mr-1" /> Save Favorite
+                  </button>
+                )}
+              </div>
+
+              </>
+              )}
+
+              {activeTab === 'queue' && status?.queue && status.queue.length > 0 && (
                 <div className="jukebox-queue-block">
                   <p className="ios-section-title jukebox-queue-title">Up next ({status.queueLength})</p>
                   <div className="jukebox-queue">
@@ -594,11 +651,61 @@ export function JukeboxPage() {
                             setStatus(res)
                             return res
                         }) : undefined}
+                        onAddFav={() => runAction('AddFav', async () => {
+                            await discordApi.addFavorite(guildId, channelId, track)
+                        })}
                       />
                     ))}
                   </div>
                 </div>
               )}
+
+              {activeTab === 'history' && (
+                 <div className="jukebox-queue-block">
+                    {historyLoading ? (
+                       <p className="text-[14px] text-muted p-4">Loading history...</p>
+                    ) : history.length === 0 ? (
+                       <p className="text-[14px] text-muted p-4">No history yet.</p>
+                    ) : (
+                       <div className="jukebox-queue">
+                          {history.map((track, i) => (
+                             <TrackRow key={`history-${track.encoded}-${i}`} track={track} onRequeue={() => runAction('Requeue', async () => {
+                                const res = await discordApi.requeueHistory(guildId, channelId, track)
+                                setStatus(res)
+                                setActiveTab('queue')
+                             })} />
+                          ))}
+                       </div>
+                    )}
+                 </div>
+              )}
+
+              {activeTab === 'favorites' && (
+                 <div className="jukebox-queue-block">
+                    {favoritesLoading ? (
+                       <p className="text-[14px] text-muted p-4">Loading favorites...</p>
+                    ) : favorites.length === 0 ? (
+                       <p className="text-[14px] text-muted p-4">No favorites saved.</p>
+                    ) : (
+                       <div className="jukebox-queue">
+                          {favorites.map((track, i) => (
+                             <TrackRow key={`fav-${track.encoded}-${i}`} track={track}
+                               onRequeue={() => runAction('PlayFav', async () => {
+                                  const res = await discordApi.playFavorite(guildId, channelId, track)
+                                  setStatus(res)
+                                  setActiveTab('queue')
+                               })}
+                               onRemove={() => runAction('RemoveFav', async () => {
+                                  const res = await discordApi.removeFavorite(guildId, channelId, track.encoded)
+                                  setFavorites(res.favorites)
+                               })}
+                             />
+                          ))}
+                       </div>
+                    )}
+                 </div>
+              )}
+
             </div>
           </section>
         </>

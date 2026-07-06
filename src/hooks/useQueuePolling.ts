@@ -2,10 +2,11 @@ import { useEffect, useRef } from 'react'
 import type { MusicQueueStatus } from '../services/discordApi'
 import { discordApi } from '../services/discordApi'
 
-interface UseQueuePollingProps {
+export interface UseQueuePollingProps {
     guildId: string | null
     channelId: string | null
     isActive: boolean
+  isSSELive?: boolean
     status: MusicQueueStatus | null
     onUpdate: (status: MusicQueueStatus) => void
 }
@@ -15,7 +16,7 @@ export function useQueuePolling({ guildId, channelId, isActive, status, onUpdate
     const isFetchingRef = useRef(false)
 
     useEffect(() => {
-        if (!guildId || !channelId || !isActive) {
+        if (!guildId || !channelId || !isActive || isSSELive) {
             if (timeoutRef.current) {
                 clearTimeout(timeoutRef.current)
                 timeoutRef.current = null
