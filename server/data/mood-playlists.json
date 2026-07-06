@@ -1,0 +1,37 @@
+[
+  {
+    "id": "chill-vibes",
+    "label": "Chill Vibes",
+    "mood": "chill",
+    "search": "chill lofi beats",
+    "trackCount": 5
+  },
+  {
+    "id": "night-drive",
+    "label": "Night Drive",
+    "mood": "nightcore",
+    "search": "nightcore mix",
+    "trackCount": 5
+  },
+  {
+    "id": "bass-night",
+    "label": "Bass Night",
+    "mood": "bassboost",
+    "search": "bass boosted songs",
+    "trackCount": 5
+  },
+  {
+    "id": "focus-flow",
+    "label": "Focus Flow",
+    "mood": "normal",
+    "search": "focus study music",
+    "trackCount": 5
+  },
+  {
+    "id": "party-8d",
+    "label": "Party 8D",
+    "mood": "8d",
+    "search": "8d audio songs",
+    "trackCount": 5
+  }
+]

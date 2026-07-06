@@ -71,6 +71,11 @@ graph TD
 | `GET` | `/api/music/soundboard` | List available soundboard clips. |
 | `POST` | `/api/music/soundboard/play` | Play a soundboard clip over current music. |
 | `GET` | `/api/music/lyrics` | Fetch lyrics for the now-playing track. |
+| `GET` | `/api/music/mood-playlists` | List DJ mood playlist presets. |
+| `POST` | `/api/music/mood-playlists/queue` | Apply mood filter and queue playlist tracks. |
+| `POST` | `/api/music/soundboard/upload` | Upload a custom soundboard clip (base64, max 2 MB). |
+| `DELETE` | `/api/music/soundboard/upload` | Remove a custom soundboard clip. |
+| `GET` | `/api/soundboard/files/:guildId/:filename` | Serve uploaded sound files for Lavalink. |
 | `GET` | `/api/metrics` | Prometheus metrics for the API process. |
 
 ### Phase 4–5 shipped in this merge
@@ -90,7 +95,11 @@ graph TD
 
 ### Roadmap (optional next)
 
-DJ mood playlists, custom sound uploads UI, synced LRC lyrics display.
+All prior roadmap items are now shipped. Optional polish: synced lyrics karaoke-style scroll-to-line, guild-specific mood playlist editor UI.
+
+- **Mood playlists:** Preset genre searches + mood filter applied (`GET /api/music/mood-playlists`, `POST /api/music/mood-playlists/queue`).
+- **Custom sound uploads:** Per-guild clips via Jukebox UI (`POST /api/music/soundboard/upload`, max 2 MB).
+- **Synced LRC lyrics:** Timed line highlighting driven by playback position.
 
 ## Known Limitations
 

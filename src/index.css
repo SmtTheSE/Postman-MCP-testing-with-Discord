@@ -1958,3 +1958,90 @@ input[type='range']::-webkit-slider-thumb {
   color: var(--text-secondary);
   margin: 0;
 }
+
+.jukebox-lrc-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.jukebox-lrc-line {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-tertiary);
+  margin: 0;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.jukebox-lrc-line-past {
+  opacity: 0.45;
+}
+
+.jukebox-lrc-line-active {
+  color: var(--text-primary);
+  font-weight: 600;
+  transform: scale(1.02);
+  transform-origin: left center;
+}
+
+.jukebox-lrc-paused {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin: 4px 0 0;
+}
+
+.jukebox-mood-playlist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jukebox-mood-playlist-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.jukebox-sound-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.jukebox-sound-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--text-tertiary);
+}
+
+.jukebox-sound-upload {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.jukebox-sound-upload-btn {
+  position: relative;
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.jukebox-sound-upload-btn input.hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+}

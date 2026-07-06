@@ -108,6 +108,15 @@ export interface SoundboardClip {
   id: string
   label: string
   maxMs?: number
+  custom?: boolean
+}
+
+export interface MoodPlaylist {
+  id: string
+  label: string
+  mood: string
+  search: string
+  trackCount: number
 }
 
 export interface LyricsResult {
@@ -399,8 +408,22 @@ export const discordApi = {
     return data
   },
 
-  listSoundboard: async (): Promise<{ success: boolean; sounds: SoundboardClip[] }> => {
-    const { data } = await api.get('/music/soundboard')
+  listSoundboard: async (guildId?: string): Promise<{ success: boolean; sounds: SoundboardClip[] }> => {
+    const { data } = await api.get('/music/soundboard', { params: guildId ? { guild_id: guildId } : {} })
+    return data
+  },
+
+  uploadSoundboard: async (
+    guildId: string,
+    musicChannelId: string,
+    payload: { label: string; filename: string; dataBase64: string; maxMs?: number },
+  ): Promise<{ success: boolean; sounds: SoundboardClip[] }> => {
+    const { data } = await api.post('/music/soundboard/upload', { guildId, musicChannelId, ...payload })
+    return data
+  },
+
+  deleteSoundboard: async (guildId: string, soundId: string): Promise<{ success: boolean; sounds: SoundboardClip[] }> => {
+    const { data } = await api.delete('/music/soundboard/upload', { data: { guildId, soundId } })
     return data
   },
 
@@ -411,6 +434,16 @@ export const discordApi = {
 
   getLyrics: async (guildId: string, channelId: string): Promise<LyricsResult> => {
     const { data } = await api.get('/music/lyrics', { params: { guild_id: guildId, channel_id: channelId } })
+    return data
+  },
+
+  listMoodPlaylists: async (): Promise<{ success: boolean; playlists: MoodPlaylist[] }> => {
+    const { data } = await api.get('/music/mood-playlists')
+    return data
+  },
+
+  queueMoodPlaylist: async (guildId: string, channelId: string, playlistId: string): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/mood-playlists/queue', { guildId, channelId, playlistId })
     return data
   },
 }

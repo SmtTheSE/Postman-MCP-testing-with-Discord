@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
 import { Music2, Pause, Play, SkipForward, LogOut as LeaveIcon, Radio, Shuffle, Trash2, Star, X, ArrowUp, ArrowDown, Dices, Mic2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { discordApi, guildIconUrl, voiceChannelDeepLink, type VoiceChannel, type TextChannel, type SoundboardClip } from '../services/discordApi'
+import { discordApi, guildIconUrl, voiceChannelDeepLink, type VoiceChannel, type TextChannel, type SoundboardClip, type MoodPlaylist } from '../services/discordApi'
+import { SyncedLyrics } from '../components/SyncedLyrics'
 import { loadUserPrefs, saveUserPrefs } from '../lib/userPrefs'
 import { CustomAlert } from '../components/ui/Alert'
 import { DiscordSignInButton } from '../components/DiscordSignInButton'
@@ -88,8 +89,12 @@ export function JukeboxPage() {
   const [channels, setChannels] = useState<VoiceChannel[]>([])
   const [textChannels, setTextChannels] = useState<TextChannel[]>([])
   const [soundboard, setSoundboard] = useState<SoundboardClip[]>([])
-  const [lyrics, setLyrics] = useState<string | null>(null)
+  const [moodPlaylists, setMoodPlaylists] = useState<MoodPlaylist[]>([])
+  const [selectedMoodPlaylist, setSelectedMoodPlaylist] = useState('')
+  const [lyricsData, setLyricsData] = useState<{ plain: string | null; synced: string | null } | null>(null)
+  const [lyricPosition, setLyricPosition] = useState(0)
   const [lyricsLoading, setLyricsLoading] = useState(false)
+  const [uploadLabel, setUploadLabel] = useState('')
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<MusicQueueStatus | null>(null)
   const [dismissedError, setDismissedError] = useState<string | null>(null)
@@ -122,8 +127,19 @@ export function JukeboxPage() {
     discordApi.health().then((h) => {
       setMusicReady(Boolean(h.music?.ready))
     }).catch(() => setMusicReady(false))
-    discordApi.listSoundboard().then((res) => setSoundboard(res.sounds || [])).catch(() => setSoundboard([]))
+    discordApi.listMoodPlaylists().then((res) => {
+      setMoodPlaylists(res.playlists || [])
+      if (res.playlists?.[0]) setSelectedMoodPlaylist(res.playlists[0].id)
+    }).catch(() => setMoodPlaylists([]))
   }, [])
+
+  useEffect(() => {
+    if (!guildId) {
+      setSoundboard([])
+      return
+    }
+    discordApi.listSoundboard(guildId).then((res) => setSoundboard(res.sounds || [])).catch(() => setSoundboard([]))
+  }, [guildId])
 
   const refreshQueue = useCallback(async (gId: string, cId: string) => {
     if (!gId || !cId) return
@@ -169,20 +185,40 @@ export function JukeboxPage() {
 
   useEffect(() => {
     setStatus(null)
-    setLyrics(null)
+    setLyricsData(null)
   }, [channelId])
 
   useEffect(() => {
     if (!guildId || !channelId || !status?.nowPlaying) {
-      setLyrics(null)
+      setLyricsData(null)
       return
     }
     setLyricsLoading(true)
     discordApi.getLyrics(guildId, channelId)
-      .then((res) => setLyrics(res.lyrics?.plain || null))
-      .catch(() => setLyrics(null))
+      .then((res) => setLyricsData({
+        plain: res.lyrics?.plain || null,
+        synced: res.lyrics?.synced || null,
+      }))
+      .catch(() => setLyricsData(null))
       .finally(() => setLyricsLoading(false))
   }, [guildId, channelId, status?.nowPlaying?.encoded])
+
+  useEffect(() => {
+    if (!status?.nowPlaying || status.paused) {
+      setLyricPosition(status?.lavalinkPosition || 0)
+      return
+    }
+    let pos = status.lavalinkPosition || 0
+    let last = Date.now()
+    setLyricPosition(pos)
+    const id = window.setInterval(() => {
+      const now = Date.now()
+      pos += now - last
+      last = now
+      setLyricPosition(pos)
+    }, 200)
+    return () => window.clearInterval(id)
+  }, [status?.nowPlaying?.encoded, status?.paused, status?.lavalinkPosition])
 
   useEffect(() => {
     if (status?.playbackError) setError(status.playbackError)
@@ -569,6 +605,37 @@ export function JukeboxPage() {
                 </button>
               </div>
 
+              <div className="jukebox-mood-playlist">
+                <span className="jukebox-settings-label">Mood playlist</span>
+                <div className="jukebox-mood-playlist-row">
+                  <select
+                    className="jukebox-select manage-input jukebox-settings-select"
+                    value={selectedMoodPlaylist}
+                    disabled={busy !== null || moodPlaylists.length === 0}
+                    onChange={(e) => setSelectedMoodPlaylist(e.target.value)}
+                  >
+                    {moodPlaylists.map((p) => (
+                      <option key={p.id} value={p.id}>{p.label}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="ios-btn-secondary jukebox-toolbar-btn"
+                    style={{ flex: '0 0 auto', minWidth: 'auto' }}
+                    disabled={!selectedMoodPlaylist || busy !== null || !status?.connected}
+                    onClick={() =>
+                      runAction('MoodPlaylist', async () => {
+                        const res = await discordApi.queueMoodPlaylist(guildId, channelId, selectedMoodPlaylist)
+                        setStatus(res)
+                        return res
+                      })
+                    }
+                  >
+                    Queue playlist
+                  </button>
+                </div>
+              </div>
+
               <div className="jukebox-toolbar">
                   <button
                     type="button"
@@ -735,28 +802,86 @@ export function JukeboxPage() {
                 </p>
               )}
 
-              {soundboard.length > 0 && (
+              {(guildId && channelId) && (
                 <div className="jukebox-soundboard">
                   <span className="jukebox-settings-label">Soundboard</span>
                   <div className="jukebox-soundboard-grid">
                     {soundboard.map((sound) => (
-                      <button
-                        key={sound.id}
-                        type="button"
-                        className="ios-btn-secondary jukebox-sound-btn"
-                        disabled={busy !== null || !status?.connected}
-                        onClick={() =>
-                          runAction(`Sound:${sound.id}`, async () => {
-                            const res = await discordApi.playSoundboard(guildId, channelId, sound.id)
-                            setStatus(res)
-                            return res
-                          })
-                        }
-                      >
-                        {sound.label}
-                      </button>
+                      <div key={sound.id} className="jukebox-sound-item">
+                        <button
+                          type="button"
+                          className="ios-btn-secondary jukebox-sound-btn"
+                          disabled={busy !== null || !status?.connected}
+                          onClick={() =>
+                            runAction(`Sound:${sound.id}`, async () => {
+                              const res = await discordApi.playSoundboard(guildId, channelId, sound.id)
+                              setStatus(res)
+                              return res
+                            })
+                          }
+                        >
+                          {sound.label}
+                        </button>
+                        {sound.custom && (
+                          <button
+                            type="button"
+                            className="jukebox-sound-delete"
+                            disabled={busy !== null}
+                            aria-label={`Delete ${sound.label}`}
+                            onClick={() =>
+                              runAction(`DelSound:${sound.id}`, async () => {
+                                const res = await discordApi.deleteSoundboard(guildId, sound.id)
+                                setSoundboard(res.sounds)
+                              })
+                            }
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
                     ))}
                   </div>
+                  <div className="jukebox-sound-upload">
+                    <input
+                      className="ios-input manage-input"
+                      placeholder="Custom sound label"
+                      value={uploadLabel}
+                      onChange={(e) => setUploadLabel(e.target.value)}
+                      disabled={busy !== null}
+                    />
+                    <label className="ios-btn-secondary jukebox-sound-upload-btn">
+                      Upload clip
+                      <input
+                        type="file"
+                        accept="audio/mpeg,audio/ogg,audio/wav,audio/mp4,.mp3,.ogg,.wav,.m4a"
+                        className="hidden"
+                        disabled={busy !== null || !guildId}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (!file || !guildId || !channelId) return
+                          const label = uploadLabel.trim() || file.name.replace(/\.[^.]+$/, '')
+                          const reader = new FileReader()
+                          reader.onload = () => {
+                            const result = reader.result as string
+                            const dataBase64 = result.includes(',') ? result.split(',')[1] : result
+                            runAction('UploadSound', async () => {
+                              const res = await discordApi.uploadSoundboard(guildId, channelId, {
+                                label,
+                                filename: file.name,
+                                dataBase64,
+                              })
+                              setSoundboard(res.sounds)
+                              setUploadLabel('')
+                              showToast({ title: 'Uploaded', message: label, variant: 'success' })
+                            })
+                          }
+                          reader.readAsDataURL(file)
+                          e.target.value = ''
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <p className="jukebox-section-hint">MP3/OGG/WAV/M4A, max 2 MB. Plays over current music.</p>
                 </div>
               )}
             </div>
@@ -866,10 +991,13 @@ export function JukeboxPage() {
                   <p className="jukebox-live-title">Lyrics</p>
                   {lyricsLoading ? (
                     <p className="text-[14px] text-muted">Loading lyrics…</p>
-                  ) : lyrics ? (
-                    <pre className="jukebox-lyrics-text">{lyrics}</pre>
                   ) : (
-                    <p className="text-[14px] text-muted">No lyrics found for this track.</p>
+                    <SyncedLyrics
+                      synced={lyricsData?.synced || null}
+                      plain={lyricsData?.plain || null}
+                      positionMs={lyricPosition}
+                      paused={status.paused}
+                    />
                   )}
                 </div>
               )}

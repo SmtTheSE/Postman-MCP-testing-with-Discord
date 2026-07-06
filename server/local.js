@@ -14,6 +14,7 @@ import channels from '../api/channels.js'
 import invites from '../api/invites.js'
 import * as musicApi from '../api/music.js'
 import metrics from '../api/metrics.js'
+import soundboardFiles from '../api/soundboard-files.js'
 import { startMusicBot } from '../lib/music/bot.js'
 import { startChatPolling } from '../lib/music/chatListener.js'
 
@@ -25,7 +26,7 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 3001
 
-app.use(express.json())
+app.use(express.json({ limit: '4mb' }))
 
 app.post('/api/create-channel', (req, res) => createChannel(req, res))
 app.get('/api/health', (req, res) => health(req, res))
@@ -63,7 +64,12 @@ app.post('/api/music/karaoke', (req, res) => musicApi.karaoke(req, res))
 app.post('/api/music/dj-roulette/spin', (req, res) => musicApi.djRouletteSpin(req, res))
 app.post('/api/music/dj-roulette/toggle', (req, res) => musicApi.djRouletteToggle(req, res))
 app.get('/api/music/soundboard', (req, res) => musicApi.soundboardList(req, res))
+app.post('/api/music/soundboard/upload', (req, res) => musicApi.soundboardUpload(req, res))
+app.delete('/api/music/soundboard/upload', (req, res) => musicApi.soundboardDelete(req, res))
 app.post('/api/music/soundboard/play', (req, res) => musicApi.soundboardPlay(req, res))
+app.get('/api/music/mood-playlists', (req, res) => musicApi.moodPlaylists(req, res))
+app.post('/api/music/mood-playlists/queue', (req, res) => musicApi.moodPlaylistQueue(req, res))
+app.get('/api/soundboard/files/:guildId/:filename', (req, res) => soundboardFiles(req, res))
 app.get('/api/music/lyrics', (req, res) => musicApi.lyrics(req, res))
 app.get('/api/metrics', (req, res) => metrics(req, res))
 

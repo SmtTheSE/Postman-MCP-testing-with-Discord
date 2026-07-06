@@ -398,8 +398,52 @@ export async function djRouletteToggle(req, res) {
 }
 
 export async function soundboardList(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const guildId = req.query?.guild_id ? String(req.query.guild_id) : null
+    if (guildId) await assertUserInGuild(accessToken, guildId, session?.userId)
+    return { success: true, sounds: music.getSoundboardList(guildId) }
+  })
+}
+
+export async function soundboardUpload(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const guildId = parseGuildId(req.body)
+    const { label, filename, dataBase64, maxMs } = req.body
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const sound = await music.uploadSoundboardClip(guildId, { label, filename, dataBase64, maxMs })
+    music.logMusicAction(guildId, channelIdFromBody(req.body), actorFromSession(session), 'uploaded sound', sound.label)
+    return { success: true, sound, sounds: music.getSoundboardList(guildId) }
+  })
+}
+
+function channelIdFromBody(body) {
+  return body.musicChannelId || body.channelId || ''
+}
+
+export async function soundboardDelete(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const guildId = parseGuildId(req.body)
+    const { soundId } = req.body
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    await music.deleteSoundboardClip(guildId, soundId)
+    return { success: true, sounds: music.getSoundboardList(guildId) }
+  })
+}
+
+export async function moodPlaylists(req, res) {
   return withMusicAuth(req, res, async () => {
-    return { success: true, sounds: music.getSoundboardList() }
+    return { success: true, playlists: music.getMoodPlaylistCatalog() }
+  })
+}
+
+export async function moodPlaylistQueue(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId, channelId } = parseIds(req.body)
+    const { playlistId } = req.body
+    const guild = await assertUserInGuild(accessToken, guildId, session?.userId)
+    const requestedBy = session?.globalName || session?.username || 'friend'
+    const status = await music.queueMoodPlaylist(guildId, channelId, playlistId, requestedBy, playAuth(session, guild))
+    return { success: true, ...status }
   })
 }
 
