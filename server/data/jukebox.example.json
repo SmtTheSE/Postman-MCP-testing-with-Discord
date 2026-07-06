@@ -3,7 +3,7 @@
   "repeat": "off",
   "autoplay": false,
   "lastChannelId": "123456789012345678",
-  "recentlyPlayed": [
+  "history": [
     {
       "encoded": "QAAAjAIAEExvZmk...=",
       "title": "lofi hip hop radio - beats to relax/study to",
@@ -12,5 +12,8 @@
       "uri": "https://www.youtube.com/watch?v=jfKfPfyJRdk",
       "requestedBy": "jules"
     }
-  ]
+  ],
+  "favoritesByUser": {
+    "123456789012345678": []
+  }
 }

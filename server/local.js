@@ -48,6 +48,12 @@ app.post('/api/music/shuffle', (req, res) => musicApi.shuffle(req, res))
 app.post('/api/music/repeat', (req, res) => musicApi.repeat(req, res))
 app.post('/api/music/autoplay', (req, res) => musicApi.autoplay(req, res))
 app.post('/api/music/play-next', (req, res) => musicApi.playNext(req, res))
+app.get('/api/music/stream', (req, res) => musicApi.stream(req, res))
+app.get('/api/music/history', (req, res) => musicApi.history(req, res))
+app.post('/api/music/history/requeue', (req, res) => musicApi.requeueHistory(req, res))
+app.all('/api/music/favorites', (req, res) => musicApi.favorites(req, res))
+app.post('/api/music/favorites/play', (req, res) => musicApi.playFavorite(req, res))
+app.post('/api/music/favorites/play-next', (req, res) => musicApi.playNextFavorite(req, res))
 
 startMusicBot().catch((err) => {
   console.error('[music] failed to start:', err.message)

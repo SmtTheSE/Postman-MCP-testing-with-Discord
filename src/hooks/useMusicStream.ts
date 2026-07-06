@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import type { MusicQueueStatus } from '../services/discordApi'
-import { discordApi } from '../services/discordApi'
 
 export type StreamConnectionState = 'live' | 'reconnecting' | 'offline'
 
@@ -27,12 +26,30 @@ export function useMusicStream({ guildId, channelId, isActive, onUpdate, onActio
 
   useEffect(() => {
     if (!guildId || !channelId || !isActive) {
-      cleanup()
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+        eventSourceRef.current = null
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
+      }
       setConnectionState('offline')
       return
     }
 
     let isMounted = true
+
+    function cleanup() {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+        eventSourceRef.current = null
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
+      }
+    }
 
     function connect() {
       if (!isMounted) return
@@ -46,87 +63,43 @@ export function useMusicStream({ guildId, channelId, isActive, onUpdate, onActio
       es.onopen = () => {
         if (!isMounted) return
         setConnectionState('live')
-        console.log('[useMusicStream] connected')
       }
 
       es.onerror = () => {
         if (!isMounted) return
-        console.warn('[useMusicStream] connection error, reconnecting...')
         cleanup()
         setConnectionState('reconnecting')
-        // Fallback or reconnect delay
         reconnectTimeoutRef.current = setTimeout(connect, 3000)
       }
 
-      es.addEventListener('connected', (_e: MessageEvent) => {
+      es.addEventListener('connected', (e: MessageEvent) => {
         if (!isMounted) return
         try {
-          const data = JSON.parse(e.data)
-          onUpdate(data)
+          onUpdate(JSON.parse(e.data))
         } catch {
-          console.error('[useMusicStream] failed to parse connected event', err)
+          console.error('[useMusicStream] failed to parse connected event')
         }
       })
 
-      es.addEventListener('queue_updated', (_e: MessageEvent) => {
+      es.addEventListener('queue_updated', (e: MessageEvent) => {
         if (!isMounted) return
         try {
-          const data = JSON.parse(e.data)
-          onUpdate(data)
+          onUpdate(JSON.parse(e.data))
         } catch {
-          console.error('[useMusicStream] failed to parse queue_updated event', err)
+          console.error('[useMusicStream] failed to parse queue_updated event')
         }
       })
 
-      es.addEventListener('now_playing_changed', (_e: MessageEvent) => {
-        if (!isMounted) return
-        try {
-          // Trigger a full fetch via API when this happens to ensure sync
-          discordApi.getMusicQueue(guildId || '', channelId || '').then(data => {
-              if (isMounted) onUpdate(data)
-          }).catch(() => {})
-        } catch {}
-      })
-
-      es.addEventListener('settings_changed', (_e: MessageEvent) => {
-         // Same here, trigger full poll to be safe and simple
-         if (isMounted) {
-            discordApi.getMusicQueue(guildId || '', channelId || '').then(data => {
-               if (isMounted) onUpdate(data)
-            }).catch(() => {})
-         }
-      })
-
-      es.addEventListener('playback_error', (_e: MessageEvent) => {
-         if (isMounted) {
-            discordApi.getMusicQueue(guildId || '', channelId || '').then(data => {
-               if (isMounted) onUpdate(data)
-            }).catch(() => {})
-         }
-      })
-
-      es.addEventListener('action_log', (_e: MessageEvent) => {
+      es.addEventListener('action_log', (e: MessageEvent) => {
         if (!isMounted || !onActionLog) return
         try {
-          const data = JSON.parse(e.data)
-          onActionLog(data)
-        } catch {}
+          onActionLog(JSON.parse(e.data))
+        } catch {
+          console.error('[useMusicStream] failed to parse action_log event')
+        }
       })
 
-      es.addEventListener('heartbeat', () => {
-          // just ignore, keeps connection alive
-      })
-    }
-
-    function cleanup() {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close()
-        eventSourceRef.current = null
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current)
-        reconnectTimeoutRef.current = null
-      }
+      es.addEventListener('heartbeat', () => {})
     }
 
     connect()

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Music2, Pause, Play, SkipForward, LogOut as LeaveIcon, Radio, Shuffle, Trash2, Star } from 'lucide-react'
+import { Music2, Pause, Play, SkipForward, LogOut as LeaveIcon, Radio, Shuffle, Trash2, Star, X, ArrowUp, ArrowDown } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { discordApi, guildIconUrl, voiceChannelDeepLink, type VoiceChannel } from '../services/discordApi'
 import { loadUserPrefs, saveUserPrefs } from '../lib/userPrefs'
 import { CustomAlert } from '../components/ui/Alert'
 import { DiscordSignInButton } from '../components/DiscordSignInButton'
 import { useAlerts } from '../context/AlertContext'
+import { useMusicStream } from '../hooks/useMusicStream'
+import { useQueuePolling } from '../hooks/useQueuePolling'
 import type { MusicQueueStatus, MusicTrack } from '../services/discordApi'
 
 function formatDuration(ms: number) {
@@ -16,7 +18,25 @@ function formatDuration(ms: number) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-function TrackRow({ track, label, index: _index, onRemove: _onRemove, onMoveUp: _onMoveUp, onMoveDown: _onMoveDown }: { track: MusicTrack; label?: string; index?: number; onRemove?: () => void; onMoveUp?: () => void; onMoveDown?: () => void }) {
+function TrackRow({
+  track,
+  label,
+  index: _index,
+  onRemove,
+  onMoveUp,
+  onMoveDown,
+  onAddFav,
+  onRequeue,
+}: {
+  track: MusicTrack
+  label?: string
+  index?: number
+  onRemove?: () => void
+  onMoveUp?: () => void
+  onMoveDown?: () => void
+  onAddFav?: () => void
+  onRequeue?: () => void
+}) {
   return (
     <div className="jukebox-track">
       <div className="jukebox-track-icon" aria-hidden>
@@ -29,6 +49,33 @@ function TrackRow({ track, label, index: _index, onRemove: _onRemove, onMoveUp: 
           {track.author} · {formatDuration(track.length)}
         </span>
       </div>
+      {onRequeue && (
+        <button type="button" onClick={onRequeue} className="ml-2 ios-btn-secondary py-1 px-2 text-[11px]">Play</button>
+      )}
+      {onAddFav && (
+        <button type="button" onClick={onAddFav} className="ml-1 text-amber-500/70 hover:text-amber-500">
+          <Star className="w-4 h-4" />
+        </button>
+      )}
+      {(onMoveUp || onMoveDown || onRemove) && (
+        <div className="flex items-center ml-2 gap-1">
+          {onMoveUp && (
+            <button type="button" onClick={onMoveUp} className="text-muted hover:text-black bg-black/5 rounded-full p-1">
+              <ArrowUp className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {onMoveDown && (
+            <button type="button" onClick={onMoveDown} className="text-muted hover:text-black bg-black/5 rounded-full p-1">
+              <ArrowDown className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {onRemove && (
+            <button type="button" onClick={onRemove} className="text-red-500/70 hover:text-red-500 bg-red-500/10 rounded-full p-1.5">
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -42,12 +89,12 @@ export function JukeboxPage() {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<MusicQueueStatus | null>(null)
   const [dismissedError, setDismissedError] = useState<string | null>(null)
-  const [activityLog, _setActivityLog] = useState<any[]>([])
+  const [activityLog, setActivityLog] = useState<Array<{ at: number; username: string; action: string; detail?: string }>>([])
   const [activeTab, setActiveTab] = useState<'queue' | 'history' | 'favorites'>('queue')
-  const [history, _setHistory] = useState<any[]>([])
-  const [favorites, setFavorites] = useState<any[]>([])
-  const [historyLoading, _setHistoryLoading] = useState(false)
-  const [favoritesLoading, _setFavoritesLoading] = useState(false)
+  const [history, setHistory] = useState<MusicTrack[]>([])
+  const [favorites, setFavorites] = useState<MusicTrack[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [favoritesLoading, setFavoritesLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -121,6 +168,44 @@ export function JukeboxPage() {
     if (status?.playbackError) setError(status.playbackError)
   }, [status?.playbackError])
 
+  const { connectionState } = useMusicStream({
+    guildId,
+    channelId,
+    isActive: !!guildId && !!channelId,
+    onUpdate: (newStatus) => {
+      if (!busy) setStatus(newStatus)
+    },
+    onActionLog: (log) => {
+      setActivityLog((prev) => [log, ...prev].slice(0, 10))
+    },
+  })
+
+  useQueuePolling({
+    guildId,
+    channelId,
+    isActive: !!guildId && !!channelId,
+    isSSELive: connectionState === 'live',
+    status,
+    onUpdate: (newStatus) => {
+      if (!busy) setStatus(newStatus)
+    },
+  })
+
+  useEffect(() => {
+    if (activeTab === 'history' && guildId) {
+      setHistoryLoading(true)
+      discordApi.getHistory(guildId, channelId)
+        .then((res) => setHistory(res.history))
+        .finally(() => setHistoryLoading(false))
+    }
+    if (activeTab === 'favorites' && guildId && channelId) {
+      setFavoritesLoading(true)
+      discordApi.getFavorites(guildId, channelId)
+        .then((res) => setFavorites(res.favorites))
+        .finally(() => setFavoritesLoading(false))
+    }
+  }, [activeTab, guildId, channelId])
+
   const playQuery = useCallback(
     async (text: string) => {
       if (!guildId || !channelId || !text.trim()) return
@@ -154,10 +239,6 @@ export function JukeboxPage() {
   useEffect(() => {
     if (!user || !guildId || !channelId) return
     refreshQueue(guildId, channelId)
-    const timer = setInterval(() => {
-      refreshQueue(guildId, channelId)
-    }, 10000)
-    return () => clearInterval(timer)
   }, [user, guildId, channelId, refreshQueue])
 
   const selectGuild = (id: string, name: string) => {

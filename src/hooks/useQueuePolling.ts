@@ -11,7 +11,7 @@ export interface UseQueuePollingProps {
     onUpdate: (status: MusicQueueStatus) => void
 }
 
-export function useQueuePolling({ guildId, channelId, isActive, status, onUpdate }: UseQueuePollingProps) {
+export function useQueuePolling({ guildId, channelId, isActive, isSSELive, status, onUpdate }: UseQueuePollingProps) {
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const isFetchingRef = useRef(false)
 
@@ -66,5 +66,5 @@ export function useQueuePolling({ guildId, channelId, isActive, status, onUpdate
                 clearTimeout(timeoutRef.current)
             }
         }
-    }, [guildId, channelId, isActive, status?.state, onUpdate])
+    }, [guildId, channelId, isActive, isSSELive, status?.state, onUpdate])
 }
