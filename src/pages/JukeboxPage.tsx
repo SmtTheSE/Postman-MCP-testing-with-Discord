@@ -595,6 +595,25 @@ export function JukeboxPage() {
                         <option value="queue">Queue</option>
                      </select>
                  </div>
+                 <div className="flex items-center gap-2">
+                     <select
+                         value={status?.settings?.mood || 'normal'}
+                         disabled={busy !== null}
+                         onChange={(e) => runAction('Mood', async () => {
+                             const res = await discordApi.setMood(guildId, channelId, e.target.value)
+                             setStatus(res)
+                             return res
+                         })}
+                         className="ios-input py-1 px-2 text-xs"
+                     >
+                         <option value="normal">Normal</option>
+                         <option value="chill">Chill</option>
+                         <option value="nightcore">Nightcore</option>
+                         <option value="bassboost">Bass Boost</option>
+                         <option value="8d">8D</option>
+                     </select>
+                 </div>
+
                  <div className="flex items-center gap-2 mr-1">
                      <label className="flex items-center gap-2 cursor-pointer text-muted font-medium">
                          <input

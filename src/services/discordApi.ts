@@ -122,6 +122,8 @@ export interface MusicQueueStatus {
   settings?: {
       repeat: 'off' | 'track' | 'queue'
       autoplay: boolean
+      announceChannelId?: string | null
+      mood?: string
   }
   playbackError?: string | null
   playbackErrorCode?: string | null
@@ -322,6 +324,11 @@ export const discordApi = {
 
   autoplayMusic: async (guildId: string, channelId: string, enabled: boolean): Promise<MusicQueueStatus> => {
     const { data } = await api.post('/music/autoplay', { guildId, channelId, enabled })
+    return data
+  },
+
+  setMood: async (guildId: string, channelId: string, mood: string): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/mood', { guildId, channelId, mood })
     return data
   },
 }
