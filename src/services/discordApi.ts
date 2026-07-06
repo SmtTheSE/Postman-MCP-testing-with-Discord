@@ -93,6 +93,34 @@ export interface AuthStatus {
   message: string | null
 }
 
+export interface TextChannel {
+  id: string
+  name: string
+  type: number
+  guild_id: string
+  parent_id: string | null
+  categoryName: string | null
+  topic?: string | null
+  position?: number
+}
+
+export interface SoundboardClip {
+  id: string
+  label: string
+  maxMs?: number
+}
+
+export interface LyricsResult {
+  success: boolean
+  track?: MusicTrack
+  lyrics?: {
+    found: boolean
+    plain: string | null
+    synced: string | null
+    source?: string
+  }
+}
+
 export interface MusicHistoryResult {
   success: boolean
   history: MusicTrack[]
@@ -124,6 +152,13 @@ export interface MusicQueueStatus {
       autoplay: boolean
       announceChannelId?: string | null
       mood?: string
+      karaokeEnabled?: boolean
+      djRouletteEnabled?: boolean
+  }
+  dj?: {
+    enabled: boolean
+    userId: string | null
+    username: string | null
   }
   playbackError?: string | null
   playbackErrorCode?: string | null
@@ -180,7 +215,7 @@ export const discordApi = {
   listVoiceChannels: async (
     guildId: string,
     options?: { jukebox?: boolean },
-  ): Promise<{ channels: VoiceChannel[]; categories: { id: string; name: string }[]; voiceCount: number }> => {
+  ): Promise<{ channels: VoiceChannel[]; textChannels?: TextChannel[]; categories: { id: string; name: string }[]; voiceCount: number }> => {
     const { data } = await api.get('/channels', {
       params: { guild_id: guildId, ...(options?.jukebox ? { scope: 'jukebox' } : {}) },
     })
@@ -337,6 +372,45 @@ export const discordApi = {
 
   setMood: async (guildId: string, channelId: string, mood: string): Promise<MusicQueueStatus> => {
     const { data } = await api.post('/music/mood', { guildId, channelId, mood })
+    return data
+  },
+
+  setKaraoke: async (guildId: string, channelId: string, enabled: boolean): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/karaoke', { guildId, channelId, enabled })
+    return data
+  },
+
+  setAnnounceChannel: async (
+    guildId: string,
+    musicChannelId: string,
+    announceChannelId: string | null,
+  ): Promise<MusicQueueStatus & { announceChannelId: string | null }> => {
+    const { data } = await api.post('/music/settings/announce', { guildId, musicChannelId, announceChannelId })
+    return data
+  },
+
+  spinDjRoulette: async (guildId: string, channelId: string): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/dj-roulette/spin', { guildId, channelId })
+    return data
+  },
+
+  toggleDjRoulette: async (guildId: string, channelId: string, enabled: boolean): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/dj-roulette/toggle', { guildId, channelId, enabled })
+    return data
+  },
+
+  listSoundboard: async (): Promise<{ success: boolean; sounds: SoundboardClip[] }> => {
+    const { data } = await api.get('/music/soundboard')
+    return data
+  },
+
+  playSoundboard: async (guildId: string, channelId: string, soundId: string): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/soundboard/play', { guildId, channelId, soundId })
+    return data
+  },
+
+  getLyrics: async (guildId: string, channelId: string): Promise<LyricsResult> => {
+    const { data } = await api.get('/music/lyrics', { params: { guild_id: guildId, channel_id: channelId } })
     return data
   },
 }

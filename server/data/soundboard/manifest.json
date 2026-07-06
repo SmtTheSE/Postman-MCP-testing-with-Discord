@@ -1,0 +1,28 @@
+{
+  "sounds": [
+    {
+      "id": "airhorn",
+      "label": "Airhorn",
+      "url": "https://www.myinstants.com/media/sounds/mlg-airhorn.mp3",
+      "maxMs": 3000
+    },
+    {
+      "id": "bruh",
+      "label": "Bruh",
+      "url": "https://www.myinstants.com/media/sounds/movie_1.mp3",
+      "maxMs": 2000
+    },
+    {
+      "id": "applause",
+      "label": "Applause",
+      "url": "https://www.myinstants.com/media/sounds/applause-01.mp3",
+      "maxMs": 4000
+    },
+    {
+      "id": "record-scratch",
+      "label": "Record Scratch",
+      "url": "https://www.myinstants.com/media/sounds/record-scratch_1.mp3",
+      "maxMs": 2000
+    }
+  ]
+}

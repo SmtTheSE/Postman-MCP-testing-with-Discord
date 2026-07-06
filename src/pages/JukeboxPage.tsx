@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
-import { Music2, Pause, Play, SkipForward, LogOut as LeaveIcon, Radio, Shuffle, Trash2, Star, X, ArrowUp, ArrowDown } from 'lucide-react'
+import { Music2, Pause, Play, SkipForward, LogOut as LeaveIcon, Radio, Shuffle, Trash2, Star, X, ArrowUp, ArrowDown, Dices, Mic2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { discordApi, guildIconUrl, voiceChannelDeepLink, type VoiceChannel } from '../services/discordApi'
+import { discordApi, guildIconUrl, voiceChannelDeepLink, type VoiceChannel, type TextChannel, type SoundboardClip } from '../services/discordApi'
 import { loadUserPrefs, saveUserPrefs } from '../lib/userPrefs'
 import { CustomAlert } from '../components/ui/Alert'
 import { DiscordSignInButton } from '../components/DiscordSignInButton'
@@ -86,6 +86,10 @@ export function JukeboxPage() {
   const [guildId, setGuildId] = useState(() => loadUserPrefs().guildId)
   const [channelId, setChannelId] = useState('')
   const [channels, setChannels] = useState<VoiceChannel[]>([])
+  const [textChannels, setTextChannels] = useState<TextChannel[]>([])
+  const [soundboard, setSoundboard] = useState<SoundboardClip[]>([])
+  const [lyrics, setLyrics] = useState<string | null>(null)
+  const [lyricsLoading, setLyricsLoading] = useState(false)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<MusicQueueStatus | null>(null)
   const [dismissedError, setDismissedError] = useState<string | null>(null)
@@ -118,6 +122,7 @@ export function JukeboxPage() {
     discordApi.health().then((h) => {
       setMusicReady(Boolean(h.music?.ready))
     }).catch(() => setMusicReady(false))
+    discordApi.listSoundboard().then((res) => setSoundboard(res.sounds || [])).catch(() => setSoundboard([]))
   }, [])
 
   const refreshQueue = useCallback(async (gId: string, cId: string) => {
@@ -138,6 +143,7 @@ export function JukeboxPage() {
     try {
       const res = await discordApi.listVoiceChannels(id, { jukebox: true })
       setChannels(res.channels)
+      setTextChannels(res.textChannels || [])
       setChannelId((current) => {
         if (res.channels.length && !res.channels.some((c) => c.id === current)) {
           return res.channels[0].id
@@ -152,6 +158,7 @@ export function JukeboxPage() {
       setError(axiosErr?.response?.data?.error || axiosErr?.message || 'Failed to load voice channels')
       if (axiosErr?.response?.data?.botInviteUrl) setBotInviteUrl(axiosErr.response.data.botInviteUrl)
       setChannels([])
+      setTextChannels([])
     }
     setLoading(false)
   }, [])
@@ -162,7 +169,20 @@ export function JukeboxPage() {
 
   useEffect(() => {
     setStatus(null)
+    setLyrics(null)
   }, [channelId])
+
+  useEffect(() => {
+    if (!guildId || !channelId || !status?.nowPlaying) {
+      setLyrics(null)
+      return
+    }
+    setLyricsLoading(true)
+    discordApi.getLyrics(guildId, channelId)
+      .then((res) => setLyrics(res.lyrics?.plain || null))
+      .catch(() => setLyrics(null))
+      .finally(() => setLyricsLoading(false))
+  }, [guildId, channelId, status?.nowPlaying?.encoded])
 
   useEffect(() => {
     if (status?.playbackError) setError(status.playbackError)
@@ -459,6 +479,30 @@ export function JukeboxPage() {
               </label>
             )}
 
+            <label className="jukebox-field-label">
+              <span className="ios-label">Announce channel</span>
+              <select
+                className="jukebox-select manage-input"
+                value={status?.settings?.announceChannelId || ''}
+                disabled={!channelId || busy !== null}
+                onChange={(e) => {
+                  const next = e.target.value || null
+                  runAction('Announce', async () => {
+                    const res = await discordApi.setAnnounceChannel(guildId, channelId, next)
+                    setStatus(res)
+                    return res
+                  })
+                }}
+              >
+                <option value="">Off — no Discord embeds</option>
+                {textChannels.map((ch) => (
+                  <option key={ch.id} value={ch.id}>
+                    {ch.categoryName ? `${ch.categoryName} / ` : ''}#{ch.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <div className="btn-row jukebox-btn-row">
               <button
                 type="button"
@@ -628,7 +672,93 @@ export function JukeboxPage() {
                          Autoplay
                      </label>
                  </div>
+                 <div className="jukebox-settings-group">
+                     <label className="jukebox-autoplay-label">
+                         <input
+                           type="checkbox"
+                           checked={status?.settings?.karaokeEnabled || false}
+                           disabled={busy !== null}
+                           onChange={(e) => {
+                              runAction('Karaoke', async () => {
+                                 const res = await discordApi.setKaraoke(guildId, channelId, e.target.checked)
+                                 setStatus(res)
+                                 return res
+                              })
+                           }}
+                           className="w-4 h-4 rounded text-[#007AFF] focus:ring-[#007AFF]"
+                         />
+                         <Mic2 className="w-3.5 h-3.5" />
+                         Karaoke
+                     </label>
+                 </div>
+                 <div className="jukebox-settings-group">
+                     <label className="jukebox-autoplay-label">
+                         <input
+                           type="checkbox"
+                           checked={status?.settings?.djRouletteEnabled || false}
+                           disabled={busy !== null}
+                           onChange={(e) => {
+                              runAction('DJ Roulette', async () => {
+                                 const res = await discordApi.toggleDjRoulette(guildId, channelId, e.target.checked)
+                                 setStatus(res)
+                                 return res
+                              })
+                           }}
+                           className="w-4 h-4 rounded text-[#007AFF] focus:ring-[#007AFF]"
+                         />
+                         DJ Roulette
+                     </label>
+                     <button
+                       type="button"
+                       className="ios-btn-secondary jukebox-toolbar-btn"
+                       style={{ flex: '0 0 auto', minWidth: 'auto', padding: '8px 12px' }}
+                       disabled={busy !== null || !status?.settings?.djRouletteEnabled}
+                       onClick={() =>
+                         runAction('Spin DJ', async () => {
+                           const res = await discordApi.spinDjRoulette(guildId, channelId)
+                           setStatus(res)
+                           if (res.dj?.username) {
+                             showToast({ title: 'DJ picked', message: res.dj.username, variant: 'success' })
+                           }
+                           return res
+                         })
+                       }
+                     >
+                       <Dices className="w-3.5 h-3.5" /> Spin
+                     </button>
+                 </div>
               </div>
+
+              {status?.settings?.djRouletteEnabled && status?.dj?.username && (
+                <p className="jukebox-section-hint">
+                  Current DJ: <strong>{status.dj.username}</strong> — only they can queue until the next spin.
+                </p>
+              )}
+
+              {soundboard.length > 0 && (
+                <div className="jukebox-soundboard">
+                  <span className="jukebox-settings-label">Soundboard</span>
+                  <div className="jukebox-soundboard-grid">
+                    {soundboard.map((sound) => (
+                      <button
+                        key={sound.id}
+                        type="button"
+                        className="ios-btn-secondary jukebox-sound-btn"
+                        disabled={busy !== null || !status?.connected}
+                        onClick={() =>
+                          runAction(`Sound:${sound.id}`, async () => {
+                            const res = await discordApi.playSoundboard(guildId, channelId, sound.id)
+                            setStatus(res)
+                            return res
+                          })
+                        }
+                      >
+                        {sound.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
@@ -727,8 +857,21 @@ export function JukeboxPage() {
                 />
               ) : (
                 <p className="text-[15px] text-muted leading-relaxed">
-                  Nothing playing — join a channel and search for a track.
+                  Nothing playing yet — add a song above.
                 </p>
+              )}
+
+              {status?.nowPlaying && (
+                <div className="jukebox-lyrics-panel">
+                  <p className="jukebox-live-title">Lyrics</p>
+                  {lyricsLoading ? (
+                    <p className="text-[14px] text-muted">Loading lyrics…</p>
+                  ) : lyrics ? (
+                    <pre className="jukebox-lyrics-text">{lyrics}</pre>
+                  ) : (
+                    <p className="text-[14px] text-muted">No lyrics found for this track.</p>
+                  )}
+                </div>
               )}
 
               <div className="mt-3 flex justify-end">

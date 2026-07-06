@@ -33,7 +33,25 @@ function groupVoiceChannels(channels) {
     }))
     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
 
-  return { voice, categories: Object.entries(categories).map(([id, name]) => ({ id, name })) }
+  const text = channels
+    .filter((c) => c.type === 0)
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      type: c.type,
+      guild_id: c.guild_id,
+      parent_id: c.parent_id || null,
+      categoryName: c.parent_id ? categories[c.parent_id] || null : null,
+      topic: c.topic,
+      position: c.position,
+    }))
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+
+  return {
+    voice,
+    text,
+    categories: Object.entries(categories).map(([id, name]) => ({ id, name })),
+  }
 }
 
 async function botInviteForGuild(guildId) {
@@ -68,6 +86,7 @@ export default async function handler(req, res) {
         const grouped = groupVoiceChannels(channels)
         return res.status(200).json({
           channels: grouped.voice,
+          textChannels: grouped.text,
           categories: grouped.categories,
           total: channels.length,
           voiceCount: grouped.voice.length,

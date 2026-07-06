@@ -13,6 +13,7 @@ import guilds from '../api/guilds.js'
 import channels from '../api/channels.js'
 import invites from '../api/invites.js'
 import * as musicApi from '../api/music.js'
+import metrics from '../api/metrics.js'
 import { startMusicBot } from '../lib/music/bot.js'
 import { startChatPolling } from '../lib/music/chatListener.js'
 
@@ -58,6 +59,13 @@ app.all('/api/music/favorites', (req, res) => musicApi.favorites(req, res))
 app.post('/api/music/favorites/play', (req, res) => musicApi.playFavorite(req, res))
 app.post('/api/music/favorites/play-next', (req, res) => musicApi.playNextFavorite(req, res))
 app.post('/api/music/settings/announce', (req, res) => musicApi.settingsAnnounce(req, res))
+app.post('/api/music/karaoke', (req, res) => musicApi.karaoke(req, res))
+app.post('/api/music/dj-roulette/spin', (req, res) => musicApi.djRouletteSpin(req, res))
+app.post('/api/music/dj-roulette/toggle', (req, res) => musicApi.djRouletteToggle(req, res))
+app.get('/api/music/soundboard', (req, res) => musicApi.soundboardList(req, res))
+app.post('/api/music/soundboard/play', (req, res) => musicApi.soundboardPlay(req, res))
+app.get('/api/music/lyrics', (req, res) => musicApi.lyrics(req, res))
+app.get('/api/metrics', (req, res) => metrics(req, res))
 
 startMusicBot().catch((err) => {
   console.error('[music] failed to start:', err.message)

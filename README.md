@@ -64,17 +64,33 @@ graph TD
 | `POST` | `/api/music/play-next` | Queues a track to play immediately after the current one. |
 | `GET` | `/api/music/history` | Gets the last 100 played tracks. |
 | `POST` | `/api/music/favorites/play` | Plays a track from favorites. |
-| `POST` | `/api/music/settings/announce` | Sets text channel for chat `!play` requests (MCP polling). |
+| `POST` | `/api/music/settings/announce` | Sets text channel for now-playing embeds and chat `!play` polling. |
+| `POST` | `/api/music/karaoke` | Toggle karaoke (vocal reduction) filter. |
+| `POST` | `/api/music/dj-roulette/spin` | Pick a random DJ from the voice channel. |
+| `POST` | `/api/music/dj-roulette/toggle` | Enable/disable DJ Roulette mode. |
+| `GET` | `/api/music/soundboard` | List available soundboard clips. |
+| `POST` | `/api/music/soundboard/play` | Play a soundboard clip over current music. |
+| `GET` | `/api/music/lyrics` | Fetch lyrics for the now-playing track. |
+| `GET` | `/api/metrics` | Prometheus metrics for the API process. |
 
 ### Phase 4–5 shipped in this merge
 
 - **Chat requests:** Bot polls `get_channel_messages` MCP tool every 10s when `announceChannelId` is set in guild JSON; `!play <query>` queues tracks.
-- **Announce setting:** `POST /api/music/settings/announce` with `{ guildId, channelId }`.
+- **Announce setting:** `POST /api/music/settings/announce` with `{ guildId, musicChannelId, announceChannelId }` — also configurable in the Jukebox UI.
+- **Now-playing embeds:** `create-message.js` MCP tool posts embeds to the announce channel when a track starts.
+- **Auto-leave:** Bot leaves after 2 minutes in an empty voice channel.
+- **Vote-skip:** Majority vote in VC to skip; mods/requester force-skip.
+- **Mood presets:** Lavalink filters (Chill, Nightcore, Bass Boost, 8D).
+- **Karaoke:** Vocal-reduction filter toggle.
+- **DJ Roulette:** Random VC listener becomes DJ; only they (or mods) can queue until next spin.
+- **Soundboard:** Short SFX clips mix over music (duck + resume).
+- **Lyrics:** Fetched from LRCLIB for the now-playing track.
+- **Metrics:** `GET /api/metrics` (Prometheus text format).
 - **MCP tool:** `get_channel_messages` in `discord-mcp/tools/pan-mcp/discord-rest-api/`.
 
-### Phase 4–5 roadmap (not yet implemented)
+### Roadmap (optional next)
 
-Auto-leave, DJ Roulette, mood presets, soundboard, lyrics, karaoke, vote-skip, now-playing embeds, metrics endpoint.
+DJ mood playlists, custom sound uploads UI, synced LRC lyrics display.
 
 ## Known Limitations
 

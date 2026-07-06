@@ -1920,3 +1920,41 @@ input[type='range']::-webkit-slider-thumb {
   color: #fff !important;
   border-color: transparent !important;
 }
+
+.jukebox-soundboard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.jukebox-soundboard-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.jukebox-sound-btn {
+  min-height: 38px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.jukebox-lyrics-panel {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius-glass-sm);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--glass-border);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.jukebox-lyrics-text {
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  color: var(--text-secondary);
+  margin: 0;
+}

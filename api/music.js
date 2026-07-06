@@ -15,6 +15,10 @@ function actorFromSession(session) {
   }
 }
 
+function playAuth(session, guild) {
+  return { userId: session?.userId, guild }
+}
+
 function parseIds(body = {}, query = {}) {
   const guildId = body.guildId || query.guild_id
   const channelId = body.channelId || query.channel_id
@@ -59,9 +63,9 @@ export async function play(req, res) {
   return withMusicAuth(req, res, async (accessToken, session) => {
     const { guildId, channelId } = parseIds(req.body)
     const { query } = req.body
-    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const guild = await assertUserInGuild(accessToken, guildId, session?.userId)
     const requestedBy = session?.globalName || session?.username || 'friend'
-    const status = await music.playQuery(guildId, channelId, query, requestedBy)
+    const status = await music.playQuery(guildId, channelId, query, requestedBy, false, playAuth(session, guild))
     music.logMusicAction(guildId, channelId, actorFromSession(session), 'added', query)
     return { success: true, ...status }
   })
@@ -208,9 +212,9 @@ export async function playNext(req, res) {
   return withMusicAuth(req, res, async (accessToken, session) => {
     const { guildId, channelId } = parseIds(req.body)
     const { query } = req.body
-    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const guild = await assertUserInGuild(accessToken, guildId, session?.userId)
     const requestedBy = session?.globalName || session?.username || 'friend'
-    const status = await music.playNext(guildId, channelId, query, requestedBy)
+    const status = await music.playNext(guildId, channelId, query, requestedBy, playAuth(session, guild))
     music.logMusicAction(guildId, channelId, actorFromSession(session), 'play_next', query)
     return { success: true, ...status }
   })
@@ -279,9 +283,9 @@ export async function requeueHistory(req, res) {
     if (!track?.encoded) {
       throw Object.assign(new Error('track with encoded field is required'), { status: 400, code: 'INVALID_REQUEST' })
     }
-    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const guild = await assertUserInGuild(accessToken, guildId, session?.userId)
     const requestedBy = session?.globalName || session?.username || 'friend'
-    const status = await music.playExistingTrack(guildId, channelId, track, requestedBy, false)
+    const status = await music.playExistingTrack(guildId, channelId, track, requestedBy, false, playAuth(session, guild))
     music.logMusicAction(guildId, channelId, actorFromSession(session), 'requeued', track.title)
     return { success: true, ...status }
   })
@@ -329,9 +333,9 @@ export async function playFavorite(req, res) {
   return withMusicAuth(req, res, async (accessToken, session) => {
     const { guildId, channelId } = parseIds(req.body)
     const { track } = req.body
-    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const guild = await assertUserInGuild(accessToken, guildId, session?.userId)
     const requestedBy = session?.globalName || session?.username || 'friend'
-    const status = await music.playExistingTrack(guildId, channelId, track, requestedBy, false)
+    const status = await music.playExistingTrack(guildId, channelId, track, requestedBy, false, playAuth(session, guild))
     music.logMusicAction(guildId, channelId, actorFromSession(session), 'played_favorite', track?.title)
     return { success: true, ...status }
   })
@@ -341,9 +345,9 @@ export async function playNextFavorite(req, res) {
   return withMusicAuth(req, res, async (accessToken, session) => {
     const { guildId, channelId } = parseIds(req.body)
     const { track } = req.body
-    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const guild = await assertUserInGuild(accessToken, guildId, session?.userId)
     const requestedBy = session?.globalName || session?.username || 'friend'
-    const status = await music.playExistingTrack(guildId, channelId, track, requestedBy, true)
+    const status = await music.playExistingTrack(guildId, channelId, track, requestedBy, true, playAuth(session, guild))
     music.logMusicAction(guildId, channelId, actorFromSession(session), 'play_next_favorite', track?.title)
     return { success: true, ...status }
   })
@@ -352,9 +356,68 @@ export async function playNextFavorite(req, res) {
 export async function settingsAnnounce(req, res) {
   return withMusicAuth(req, res, async (accessToken, session) => {
     const guildId = parseGuildId(req.body)
-    const announceChannelId = req.body.channelId || req.body.announceChannelId || null
+    const musicChannelId = req.body.musicChannelId || req.body.voiceChannelId
+    const announceChannelId = req.body.announceChannelId ?? null
     await assertUserInGuild(accessToken, guildId, session?.userId)
-    setAnnounceChannelId(guildId, announceChannelId)
+    setAnnounceChannelId(guildId, announceChannelId || null)
+    if (musicChannelId) {
+      const status = await music.getQueueStatus(guildId, musicChannelId)
+      return { success: true, announceChannelId, ...status }
+    }
     return { success: true, announceChannelId }
+  })
+}
+
+export async function karaoke(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId, channelId } = parseIds(req.body)
+    const { enabled } = req.body
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const status = await music.setKaraoke(guildId, channelId, enabled)
+    return { success: true, ...status }
+  })
+}
+
+export async function djRouletteSpin(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId, channelId } = parseIds(req.body)
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const status = await music.spinDjRoulette(guildId, channelId)
+    return { success: true, ...status }
+  })
+}
+
+export async function djRouletteToggle(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId, channelId } = parseIds(req.body)
+    const { enabled } = req.body
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const status = await music.toggleDjRoulette(guildId, channelId, enabled)
+    return { success: true, ...status }
+  })
+}
+
+export async function soundboardList(req, res) {
+  return withMusicAuth(req, res, async () => {
+    return { success: true, sounds: music.getSoundboardList() }
+  })
+}
+
+export async function soundboardPlay(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId, channelId } = parseIds(req.body)
+    const { soundId } = req.body
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const status = await music.playSoundboardClip(guildId, channelId, soundId)
+    music.logMusicAction(guildId, channelId, actorFromSession(session), 'soundboard', soundId)
+    return { success: true, ...status }
+  })
+}
+
+export async function lyrics(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId, channelId } = parseIds(req.body, req.query)
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    return music.getLyrics(guildId, channelId)
   })
 }
