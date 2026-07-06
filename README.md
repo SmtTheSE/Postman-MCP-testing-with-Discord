@@ -243,3 +243,15 @@ Phase 2 enhances the initial jukebox with a robust queue management experience, 
 **Known Limitations:**
 - Employs a REST polling mechanism (adaptive 2s-8s) rather than WebSockets.
 - Data persistence utilizes synchronous local file storage JSON, fitting the educational/low-footprint theme.
+
+### Phase 3 Collaborative Jukebox Features
+Phase 3 expands the jukebox into a robust real-time collaborative tool:
+- **Server-Sent Events (SSE):** Heavy polling is replaced with an SSE stream (`/api/music/stream`), offering instant synchronization of queue changes, playback state, and settings across all connected clients.
+- **Role-Based Queue Controls:** "Add to queue" remains open to everyone, but destructive actions (skip, remove, move, clear) now require the user to either be the original requester of the track, or hold a server moderation role (`MANAGE_CHANNELS`, `MODERATE_MEMBERS`, or `ADMINISTRATOR`).
+- **Live Activity Panel:** A real-time activity log shows exactly who performed which action in the session (e.g., "jules added a track").
+- **History & Favorites:** The local per-guild JSON persistence is upgraded to track a longer playback history (100 tracks) and allows users to save tracks to a personal favorites list (scoped to the server) for quick re-queueing.
+- **Voice Reliability:** Connections are fortified with state locks preventing duplicate "play" races, enhanced timeouts, and metrics tracking for better reliability.
+
+**Known Limitations:**
+- Favorites are currently scoped per user per guild, not globally across the app.
+- SSE connection handling includes automatic reconnection and polling fallbacks, but the connection is only established when the frontend Jukebox page is active.
