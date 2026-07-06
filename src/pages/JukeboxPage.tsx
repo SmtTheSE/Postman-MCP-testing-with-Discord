@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
 import { Music2, Pause, Play, SkipForward, LogOut as LeaveIcon, Radio, Shuffle, Trash2, Star, X, ArrowUp, ArrowDown } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { discordApi, guildIconUrl, voiceChannelDeepLink, type VoiceChannel } from '../services/discordApi'
@@ -6,7 +6,7 @@ import { loadUserPrefs, saveUserPrefs } from '../lib/userPrefs'
 import { CustomAlert } from '../components/ui/Alert'
 import { DiscordSignInButton } from '../components/DiscordSignInButton'
 import { useAlerts } from '../context/AlertContext'
-import { useMusicStream } from '../hooks/useMusicStream'
+import { useMusicStream, musicStatusChanged } from '../hooks/useMusicStream'
 import { useQueuePolling } from '../hooks/useQueuePolling'
 import type { MusicQueueStatus, MusicTrack } from '../services/discordApi'
 
@@ -18,7 +18,7 @@ function formatDuration(ms: number) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-function TrackRow({
+const TrackRow = memo(function TrackRow({
   track,
   label,
   index: _index,
@@ -78,7 +78,7 @@ function TrackRow({
       )}
     </div>
   )
-}
+})
 
 export function JukeboxPage() {
   const { user, authLoading, authError, login, guilds, guildsLoading, guildsError } = useApp()
@@ -168,16 +168,24 @@ export function JukeboxPage() {
     if (status?.playbackError) setError(status.playbackError)
   }, [status?.playbackError])
 
+  const busyRef = useRef(busy)
+  busyRef.current = busy
+
+  const applyStatusUpdate = useCallback((newStatus: MusicQueueStatus) => {
+    if (busyRef.current) return
+    setStatus((prev) => (musicStatusChanged(prev, newStatus) ? newStatus : prev))
+  }, [])
+
+  const handleActionLog = useCallback((log: { at: number; username: string; action: string; detail?: string }) => {
+    setActivityLog((prev) => [log, ...prev].slice(0, 10))
+  }, [])
+
   const { connectionState } = useMusicStream({
     guildId,
     channelId,
     isActive: !!guildId && !!channelId,
-    onUpdate: (newStatus) => {
-      if (!busy) setStatus(newStatus)
-    },
-    onActionLog: (log) => {
-      setActivityLog((prev) => [log, ...prev].slice(0, 10))
-    },
+    onUpdate: applyStatusUpdate,
+    onActionLog: handleActionLog,
   })
 
   useQueuePolling({
@@ -185,10 +193,8 @@ export function JukeboxPage() {
     channelId,
     isActive: !!guildId && !!channelId,
     isSSELive: connectionState === 'live',
-    status,
-    onUpdate: (newStatus) => {
-      if (!busy) setStatus(newStatus)
-    },
+    playbackState: status?.state,
+    onUpdate: applyStatusUpdate,
   })
 
   useEffect(() => {
