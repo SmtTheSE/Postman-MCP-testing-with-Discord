@@ -14,6 +14,7 @@ import channels from '../api/channels.js'
 import invites from '../api/invites.js'
 import * as musicApi from '../api/music.js'
 import { startMusicBot } from '../lib/music/bot.js'
+import { startChatPolling } from '../lib/music/chatListener.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../discord-mcp/.env') })
@@ -54,6 +55,7 @@ app.post('/api/music/history/requeue', (req, res) => musicApi.requeueHistory(req
 app.all('/api/music/favorites', (req, res) => musicApi.favorites(req, res))
 app.post('/api/music/favorites/play', (req, res) => musicApi.playFavorite(req, res))
 app.post('/api/music/favorites/play-next', (req, res) => musicApi.playNextFavorite(req, res))
+app.post('/api/music/settings/announce', (req, res) => musicApi.settingsAnnounce(req, res))
 
 startMusicBot().catch((err) => {
   console.error('[music] failed to start:', err.message)

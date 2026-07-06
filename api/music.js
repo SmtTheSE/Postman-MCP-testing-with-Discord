@@ -6,6 +6,7 @@ import { getSession as getQueueSession } from '../lib/music/queue.js'
 import { assertQueuePermission, isTrackRequester } from '../lib/music/queuePermissions.js'
 import { addSubscriber } from '../lib/music/sse.js'
 import { getHistory, getUserFavorites, addUserFavorite, removeUserFavorite } from '../lib/music/stateStore.js'
+import { setAnnounceChannelId } from '../lib/music/settings.js'
 
 function actorFromSession(session) {
   return {
@@ -320,10 +321,10 @@ export async function playNextFavorite(req, res) {
 
 export async function settingsAnnounce(req, res) {
   return withMusicAuth(req, res, async (accessToken, session) => {
-    const { guildId } = parseIds(req.body)
-    const { channelId } = req.body // nullable
+    const guildId = parseGuildId(req.body)
+    const announceChannelId = req.body.channelId || req.body.announceChannelId || null
     await assertUserInGuild(accessToken, guildId, session?.userId)
-    setAnnounceChannelId(guildId, channelId || null)
-    return res.json({ success: true, announceChannelId: channelId || null })
+    setAnnounceChannelId(guildId, announceChannelId)
+    return { success: true, announceChannelId }
   })
 }

@@ -42,6 +42,7 @@ export const toolPaths = [
   'pan-mcp/discord-rest-api/bulk-update-guild-channels.js',
   'pan-mcp/discord-rest-api/pin-message.js',
   'pan-mcp/discord-rest-api/get-channel.js',
+  'pan-mcp/discord-rest-api/get-channel-messages.js',
   'pan-mcp/discord-rest-api/delete-channel-permission-overwrite.js',
   'pan-mcp/discord-rest-api/list-channel-invites.js',
   'pan-mcp/discord-rest-api/invite-resolve.js',

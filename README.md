@@ -15,8 +15,8 @@ A public learning project demonstrating how to build a modern Discord bot and we
 | **Phase 1** | Basic Jukebox | OAuth sign-in, join/play/skip/pause, Lavalink 4.2+ (DAVE) integration. |
 | **Phase 2** | Queue & Persistence | Move/remove/shuffle/repeat tracks. Per-guild JSON state storage. |
 | **Phase 3** | Collaborative Real-time | Server-Sent Events (SSE) synchronization. History, Favorites, Mod auth. |
-| **Phase 4** | Social Jukebox | Auto-leave, DJ Roulette, Mood Presets, Soundboard, Lyrics MVP, Karaoke filter, Vote skips. |
-| **Phase 5** | MCP Expansion & Polish | `get_channel_messages`, `create_message` MCP tools. Chat polling requests, Track announcements. |
+| **Phase 4** | Social Jukebox (foundation) | Chat `!play` via MCP polling, announce channel setting. Roulette/mood/soundboard/voting: roadmap. |
+| **Phase 5** | MCP Expansion (foundation) | `get_channel_messages` MCP tool, educational chat listener pattern. |
 
 ## Architecture Diagram
 
@@ -64,17 +64,19 @@ graph TD
 | `POST` | `/api/music/play-next` | Queues a track to play immediately after the current one. |
 | `GET` | `/api/music/history` | Gets the last 100 played tracks. |
 | `POST` | `/api/music/favorites/play` | Plays a track from favorites. |
-| `POST` | `/api/music/roulette/pick` | Picks a random active VC member. |
-| `POST` | `/api/music/mood` | Plays a curated list of tracks based on mood. |
-| `GET` | `/api/music/soundboard` | Lists available short audio clips. |
-| `POST` | `/api/music/soundboard/play` | Plays a short sound clip over the music. |
-| `GET` | `/api/music/lyrics` | Retrieves lyrics for a playing track. |
-| `POST` | `/api/music/karaoke` | Toggles vocal reduction audio filter. |
-| `POST` | `/api/music/vote/skip` | Cast a vote to skip current track (requires 2+ votes). |
-| `POST` | `/api/music/settings/announce` | Sets the text channel to post "Now Playing" messages. |
+| `POST` | `/api/music/settings/announce` | Sets text channel for chat `!play` requests (MCP polling). |
+
+### Phase 4–5 shipped in this merge
+
+- **Chat requests:** Bot polls `get_channel_messages` MCP tool every 10s when `announceChannelId` is set in guild JSON; `!play <query>` queues tracks.
+- **Announce setting:** `POST /api/music/settings/announce` with `{ guildId, channelId }`.
+- **MCP tool:** `get_channel_messages` in `discord-mcp/tools/pan-mcp/discord-rest-api/`.
+
+### Phase 4–5 roadmap (not yet implemented)
+
+Auto-leave, DJ Roulette, mood presets, soundboard, lyrics, karaoke, vote-skip, now-playing embeds, metrics endpoint.
 
 ## Known Limitations
 
-*   **Lyrics MVP:** Scrapes metadata and relies on `lyrics.ovh`. May not find lyrics for heavily remixed tracks or non-standard naming.
-*   **Soundboard MVP:** Temporarily pauses the current track to play the clip on the single Lavalink player, then resumes.
-*   **Chat Polling:** Currently polls messages every 10 seconds via MCP to demonstrate REST-based chat processing (a production bot would use Gateway events).
+*   **Chat Polling:** Polls messages every 10 seconds via MCP when `announceChannelId` is configured (production bots typically use Gateway events).
+*   **Phase 4–5 partial:** Social features beyond chat requests are documented as roadmap items above.
