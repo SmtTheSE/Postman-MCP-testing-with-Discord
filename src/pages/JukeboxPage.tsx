@@ -3,6 +3,7 @@ import { Music2, Pause, Play, SkipForward, LogOut as LeaveIcon, Radio, Shuffle, 
 import { useApp } from '../context/AppContext'
 import { discordApi, guildIconUrl, voiceChannelDeepLink, type VoiceChannel, type TextChannel, type SoundboardClip, type MoodPlaylist } from '../services/discordApi'
 import { SyncedLyrics } from '../components/SyncedLyrics'
+import { MoodPlaylistEditor } from '../components/MoodPlaylistEditor'
 import { loadUserPrefs, saveUserPrefs } from '../lib/userPrefs'
 import { CustomAlert } from '../components/ui/Alert'
 import { DiscordSignInButton } from '../components/DiscordSignInButton'
@@ -123,15 +124,30 @@ export function JukeboxPage() {
   const botChannelName = channels.find((c) => c.id === status?.botChannelId)?.name
   const selectedGuild = uniqueGuilds.find((g) => g.id === guildId)
 
+  const loadMoodPlaylists = useCallback((playlists: MoodPlaylist[]) => {
+    setMoodPlaylists(playlists)
+    setSelectedMoodPlaylist((current) => {
+      if (playlists.some((p) => p.id === current)) return current
+      return playlists[0]?.id || ''
+    })
+  }, [])
+
   useEffect(() => {
     discordApi.health().then((h) => {
       setMusicReady(Boolean(h.music?.ready))
     }).catch(() => setMusicReady(false))
-    discordApi.listMoodPlaylists().then((res) => {
-      setMoodPlaylists(res.playlists || [])
-      if (res.playlists?.[0]) setSelectedMoodPlaylist(res.playlists[0].id)
-    }).catch(() => setMoodPlaylists([]))
   }, [])
+
+  useEffect(() => {
+    if (!guildId) {
+      setMoodPlaylists([])
+      setSelectedMoodPlaylist('')
+      return
+    }
+    discordApi.listMoodPlaylists(guildId)
+      .then((res) => loadMoodPlaylists(res.playlists || []))
+      .catch(() => setMoodPlaylists([]))
+  }, [guildId, loadMoodPlaylists])
 
   useEffect(() => {
     if (!guildId) {
@@ -615,7 +631,9 @@ export function JukeboxPage() {
                     onChange={(e) => setSelectedMoodPlaylist(e.target.value)}
                   >
                     {moodPlaylists.map((p) => (
-                      <option key={p.id} value={p.id}>{p.label}</option>
+                      <option key={p.id} value={p.id}>
+                        {p.custom ? `★ ${p.label}` : p.label}
+                      </option>
                     ))}
                   </select>
                   <button
@@ -634,6 +652,14 @@ export function JukeboxPage() {
                     Queue playlist
                   </button>
                 </div>
+                {guildId && (
+                  <MoodPlaylistEditor
+                    guildId={guildId}
+                    busy={busy !== null}
+                    onPlaylistsChange={loadMoodPlaylists}
+                    onSelectPlaylist={setSelectedMoodPlaylist}
+                  />
+                )}
               </div>
 
               <div className="jukebox-toolbar">

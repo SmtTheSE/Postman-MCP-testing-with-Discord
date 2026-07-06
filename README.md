@@ -15,7 +15,7 @@ A public learning project demonstrating how to build a modern Discord bot and we
 | **Phase 1** | Basic Jukebox | OAuth sign-in, join/play/skip/pause, Lavalink 4.2+ (DAVE) integration. |
 | **Phase 2** | Queue & Persistence | Move/remove/shuffle/repeat tracks. Per-guild JSON state storage. |
 | **Phase 3** | Collaborative Real-time | Server-Sent Events (SSE) synchronization. History, Favorites, Mod auth. |
-| **Phase 4** | Social Jukebox (foundation) | Chat `!play` via MCP polling, announce channel setting. Roulette/mood/soundboard/voting: roadmap. |
+| **Phase 4** | Social Jukebox | Chat `!play`, announce channel, DJ Roulette, mood presets/playlists, soundboard, vote-skip, auto-leave. |
 | **Phase 5** | MCP Expansion (foundation) | `get_channel_messages` MCP tool, educational chat listener pattern. |
 
 ## Architecture Diagram
@@ -71,7 +71,9 @@ graph TD
 | `GET` | `/api/music/soundboard` | List available soundboard clips. |
 | `POST` | `/api/music/soundboard/play` | Play a soundboard clip over current music. |
 | `GET` | `/api/music/lyrics` | Fetch lyrics for the now-playing track. |
-| `GET` | `/api/music/mood-playlists` | List DJ mood playlist presets. |
+| `GET` | `/api/music/mood-playlists` | List built-in + guild custom mood playlists (`?guild_id=`). |
+| `POST` | `/api/music/mood-playlists` | Create or update a guild custom mood playlist. |
+| `DELETE` | `/api/music/mood-playlists` | Delete a guild custom mood playlist. |
 | `POST` | `/api/music/mood-playlists/queue` | Apply mood filter and queue playlist tracks. |
 | `POST` | `/api/music/soundboard/upload` | Upload a custom soundboard clip (base64, max 2 MB). |
 | `DELETE` | `/api/music/soundboard/upload` | Remove a custom soundboard clip. |
@@ -88,20 +90,13 @@ graph TD
 - **Mood presets:** Lavalink filters (Chill, Nightcore, Bass Boost, 8D).
 - **Karaoke:** Vocal-reduction filter toggle.
 - **DJ Roulette:** Random VC listener becomes DJ; only they (or mods) can queue until next spin.
-- **Soundboard:** Short SFX clips mix over music (duck + resume).
-- **Lyrics:** Fetched from LRCLIB for the now-playing track.
+- **Soundboard:** Built-in SFX plus per-guild uploads (max 2 MB) via Jukebox UI; duck + resume over music.
+- **Lyrics:** LRCLIB fetch with synced LRC line highlighting and karaoke-style auto-scroll to the active line during playback.
+- **Mood playlists:** Built-in presets plus per-guild custom playlists (editor in Jukebox UI); queue applies mood filter + genre search.
 - **Metrics:** `GET /api/metrics` (Prometheus text format).
 - **MCP tool:** `get_channel_messages` in `discord-mcp/tools/pan-mcp/discord-rest-api/`.
-
-### Roadmap (optional next)
-
-All prior roadmap items are now shipped. Optional polish: synced lyrics karaoke-style scroll-to-line, guild-specific mood playlist editor UI.
-
-- **Mood playlists:** Preset genre searches + mood filter applied (`GET /api/music/mood-playlists`, `POST /api/music/mood-playlists/queue`).
-- **Custom sound uploads:** Per-guild clips via Jukebox UI (`POST /api/music/soundboard/upload`, max 2 MB).
-- **Synced LRC lyrics:** Timed line highlighting driven by playback position.
 
 ## Known Limitations
 
 *   **Chat Polling:** Polls messages every 10 seconds via MCP when `announceChannelId` is configured (production bots typically use Gateway events).
-*   **Phase 4–5 partial:** Social features beyond chat requests are documented as roadmap items above.
+*   **Custom sounds:** Uploaded clips are stored on the API server filesystem, not Discord CDN.

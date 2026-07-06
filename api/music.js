@@ -431,8 +431,30 @@ export async function soundboardDelete(req, res) {
 }
 
 export async function moodPlaylists(req, res) {
-  return withMusicAuth(req, res, async () => {
-    return { success: true, playlists: music.getMoodPlaylistCatalog() }
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const guildId = req.query?.guild_id ? String(req.query.guild_id) : null
+    if (guildId) await assertUserInGuild(accessToken, guildId, session?.userId)
+    return { success: true, playlists: music.getMoodPlaylistCatalog(guildId) }
+  })
+}
+
+export async function moodPlaylistSave(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const guildId = parseGuildId(req.body)
+    const { id, label, mood, search, trackCount } = req.body
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const playlist = music.saveMoodPlaylist(guildId, { id, label, mood, search, trackCount })
+    return { success: true, playlist, playlists: music.getMoodPlaylistCatalog(guildId) }
+  })
+}
+
+export async function moodPlaylistDelete(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const guildId = parseGuildId(req.body)
+    const { playlistId } = req.body
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const playlists = music.removeMoodPlaylist(guildId, playlistId)
+    return { success: true, playlists }
   })
 }
 

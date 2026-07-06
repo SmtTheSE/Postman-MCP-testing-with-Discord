@@ -117,6 +117,7 @@ export interface MoodPlaylist {
   mood: string
   search: string
   trackCount: number
+  custom?: boolean
 }
 
 export interface LyricsResult {
@@ -437,8 +438,24 @@ export const discordApi = {
     return data
   },
 
-  listMoodPlaylists: async (): Promise<{ success: boolean; playlists: MoodPlaylist[] }> => {
-    const { data } = await api.get('/music/mood-playlists')
+  listMoodPlaylists: async (guildId?: string): Promise<{ success: boolean; playlists: MoodPlaylist[] }> => {
+    const { data } = await api.get('/music/mood-playlists', { params: guildId ? { guild_id: guildId } : {} })
+    return data
+  },
+
+  saveMoodPlaylist: async (
+    guildId: string,
+    payload: { id?: string; label: string; mood: string; search: string; trackCount?: number },
+  ): Promise<{ success: boolean; playlist: MoodPlaylist; playlists: MoodPlaylist[] }> => {
+    const { data } = await api.post('/music/mood-playlists', { guildId, ...payload })
+    return data
+  },
+
+  deleteMoodPlaylist: async (
+    guildId: string,
+    playlistId: string,
+  ): Promise<{ success: boolean; playlists: MoodPlaylist[] }> => {
+    const { data } = await api.delete('/music/mood-playlists', { data: { guildId, playlistId } })
     return data
   },
 
