@@ -231,3 +231,15 @@ Voice bitrates are clamped to Discord's per-tier maximum (96 kbps cap in UI).
 ## License
 
 MIT — share and learn freely.
+
+### Phase 2 Jukebox Features
+Phase 2 enhances the initial jukebox with a robust queue management experience, per-guild persistence, and playback reliability:
+- **Queue Controls:** Play Next, Shuffle, Clear, Remove track, Move track.
+- **Playback Modes:** Autoplay (via related tracks or generic fallback) and Repeat (Queue/Track/Off).
+- **Session Persistence:** Lightweight local JSON persistence per-guild located in `server/data/jukebox/`. It tracks last queries, voice channel ID, repeat mode, autoplay, and recently played tracks.
+- **Reliability:** Built-in error tracking with structured API error codes (`TRACK_RESOLVE_FAILED`, `VOICE_JOIN_TIMEOUT`), bounded retries with jitter for search resolvers, and a state machine tracking playback (`idle`, `joining`, `playing`, `paused`, `error`).
+- **UX Refresh:** Responsive inline track controls, playback state polling adaptive interval, and persistent playback error banners.
+
+**Known Limitations:**
+- Employs a REST polling mechanism (adaptive 2s-8s) rather than WebSockets.
+- Data persistence utilizes synchronous local file storage JSON, fitting the educational/low-footprint theme.

@@ -41,6 +41,13 @@ app.post('/api/music/skip', (req, res) => musicApi.skip(req, res))
 app.post('/api/music/pause', (req, res) => musicApi.pause(req, res))
 app.post('/api/music/leave', (req, res) => musicApi.leave(req, res))
 app.get('/api/music/queue', (req, res) => musicApi.queue(req, res))
+app.post('/api/music/remove', (req, res) => musicApi.remove(req, res))
+app.post('/api/music/move', (req, res) => musicApi.move(req, res))
+app.post('/api/music/clear', (req, res) => musicApi.clear(req, res))
+app.post('/api/music/shuffle', (req, res) => musicApi.shuffle(req, res))
+app.post('/api/music/repeat', (req, res) => musicApi.repeat(req, res))
+app.post('/api/music/autoplay', (req, res) => musicApi.autoplay(req, res))
+app.post('/api/music/play-next', (req, res) => musicApi.playNext(req, res))
 
 startMusicBot().catch((err) => {
   console.error('[music] failed to start:', err.message)

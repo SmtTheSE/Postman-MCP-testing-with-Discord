@@ -42,3 +42,4 @@ patch_*.py
 
 # Editor agent cache
 .kilo/
+server/data/jukebox/

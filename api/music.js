@@ -78,3 +78,73 @@ export async function queue(req, res) {
     return music.getQueueStatus(guildId, channelId)
   })
 }
+
+export async function remove(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId, channelId } = parseIds(req.body)
+    const { index } = req.body
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const status = await music.removeTrack(guildId, channelId, index)
+    return { success: true, ...status }
+  })
+}
+
+export async function move(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId, channelId } = parseIds(req.body)
+    const { fromIndex, toIndex } = req.body
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const status = await music.moveTrack(guildId, channelId, fromIndex, toIndex)
+    return { success: true, ...status }
+  })
+}
+
+export async function clear(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId, channelId } = parseIds(req.body)
+    const { keepNowPlaying } = req.body
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const status = await music.clearQueue(guildId, channelId, keepNowPlaying)
+    return { success: true, ...status }
+  })
+}
+
+export async function shuffle(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId, channelId } = parseIds(req.body)
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const status = await music.shuffleQueue(guildId, channelId)
+    return { success: true, ...status }
+  })
+}
+
+export async function repeat(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId, channelId } = parseIds(req.body)
+    const { mode } = req.body
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const status = await music.setRepeatMode(guildId, channelId, mode)
+    return { success: true, ...status }
+  })
+}
+
+export async function autoplay(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId, channelId } = parseIds(req.body)
+    const { enabled } = req.body
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const status = await music.setAutoplay(guildId, channelId, enabled)
+    return { success: true, ...status }
+  })
+}
+
+export async function playNext(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId, channelId } = parseIds(req.body)
+    const { query } = req.body
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const requestedBy = session?.globalName || session?.username || 'friend'
+    const status = await music.playNext(guildId, channelId, query, requestedBy)
+    return { success: true, ...status }
+  })
+}

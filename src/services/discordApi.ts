@@ -108,12 +108,18 @@ export interface MusicQueueStatus {
   queue: MusicTrack[]
   paused: boolean
   queueLength: number
+  state: 'idle' | 'joining' | 'ready' | 'playing' | 'paused' | 'error'
+  settings?: {
+      repeat: 'off' | 'track' | 'queue'
+      autoplay: boolean
+  }
+  playbackError?: string | null
+  playbackErrorCode?: string | null
   botChannelId?: string | null
   channelMatch?: boolean
   lavalinkUdpConnected?: boolean
   lavalinkHasTrack?: boolean
   lavalinkPosition?: number
-  playbackError?: string | null
 }
 
 export const discordApi = {
@@ -219,6 +225,11 @@ export const discordApi = {
     return data
   },
 
+  playNextMusic: async (guildId: string, channelId: string, query: string): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/play-next', { guildId, channelId, query })
+    return data
+  },
+
   skipMusic: async (guildId: string, channelId: string): Promise<MusicQueueStatus> => {
     const { data } = await api.post('/music/skip', { guildId, channelId })
     return data
@@ -236,6 +247,36 @@ export const discordApi = {
 
   getMusicQueue: async (guildId: string, channelId: string): Promise<MusicQueueStatus> => {
     const { data } = await api.get('/music/queue', { params: { guild_id: guildId, channel_id: channelId } })
+    return data
+  },
+
+  removeTrack: async (guildId: string, channelId: string, index: number): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/remove', { guildId, channelId, index })
+    return data
+  },
+
+  moveTrack: async (guildId: string, channelId: string, fromIndex: number, toIndex: number): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/move', { guildId, channelId, fromIndex, toIndex })
+    return data
+  },
+
+  clearQueue: async (guildId: string, channelId: string, keepNowPlaying?: boolean): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/clear', { guildId, channelId, keepNowPlaying })
+    return data
+  },
+
+  shuffleQueue: async (guildId: string, channelId: string): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/shuffle', { guildId, channelId })
+    return data
+  },
+
+  repeatMusic: async (guildId: string, channelId: string, mode: 'off' | 'track' | 'queue'): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/repeat', { guildId, channelId, mode })
+    return data
+  },
+
+  autoplayMusic: async (guildId: string, channelId: string, enabled: boolean): Promise<MusicQueueStatus> => {
+    const { data } = await api.post('/music/autoplay', { guildId, channelId, enabled })
     return data
   },
 }

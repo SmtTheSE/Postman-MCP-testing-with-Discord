@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Music2, Pause, Play, SkipForward, LogOut as LeaveIcon, Radio } from 'lucide-react'
+import { Music2, Pause, Play, SkipForward, LogOut as LeaveIcon, Radio, Shuffle, Trash2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { discordApi, guildIconUrl, voiceChannelDeepLink, type VoiceChannel } from '../services/discordApi'
 import { loadUserPrefs, saveUserPrefs } from '../lib/userPrefs'
@@ -16,7 +16,7 @@ function formatDuration(ms: number) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-function TrackRow({ track, label }: { track: MusicTrack; label?: string }) {
+function TrackRow({ track, label, index: _index, onRemove: _onRemove, onMoveUp: _onMoveUp, onMoveDown: _onMoveDown }: { track: MusicTrack; label?: string; index?: number; onRemove?: () => void; onMoveUp?: () => void; onMoveDown?: () => void }) {
   return (
     <div className="jukebox-track">
       <div className="jukebox-track-icon" aria-hidden>
@@ -41,6 +41,7 @@ export function JukeboxPage() {
   const [channels, setChannels] = useState<VoiceChannel[]>([])
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<MusicQueueStatus | null>(null)
+  const [dismissedError, setDismissedError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -323,6 +324,15 @@ export function JukeboxPage() {
         </div>
       )}
 
+      {guildId && channelId && status?.playbackError && status.playbackError !== dismissedError && (
+        <CustomAlert variant="error" title="Playback Error">
+          <div className="flex items-center justify-between">
+            <span className="text-sm">{status.playbackError}</span>
+            <button type="button" onClick={() => setDismissedError(status.playbackError || null)} className="text-[#007AFF] text-sm underline font-semibold ml-4 shrink-0">Dismiss</button>
+          </div>
+        </CustomAlert>
+      )}
+
       {guildId && (
         <section>
           <p className="ios-section-title">Voice channel</p>
@@ -372,7 +382,7 @@ export function JukeboxPage() {
                 onClick={() =>
                   runAction('Leave', async () => {
                     await discordApi.leaveMusic(guildId, channelId)
-                    setStatus({ connected: false, nowPlaying: null, queue: [], paused: false, queueLength: 0 })
+                    setStatus({ connected: false, nowPlaying: null, queue: [], paused: false, queueLength: 0, state: 'idle' })
                   })
                 }
               >
@@ -413,6 +423,92 @@ export function JukeboxPage() {
                 >
                   <Play className="w-5 h-5" />
                 </button>
+              </div>
+
+              <div className="flex gap-2 mt-3 flex-wrap">
+                  <button
+                    type="button"
+                    className="ios-btn-secondary py-1.5 px-3 text-xs flex-1 min-w-[100px]"
+                    disabled={!query.trim() || busy !== null}
+                    onClick={() =>
+                      runAction('PlayNext', async () => {
+                        const res = await discordApi.playNextMusic(guildId, channelId, query)
+                        setStatus(res)
+                        setQuery('')
+                        return res
+                      })
+                    }
+                  >
+                    Play Next
+                  </button>
+                  <button
+                    type="button"
+                    className="ios-btn-secondary py-1.5 px-3 text-xs flex-1 min-w-[100px]"
+                    disabled={busy !== null || status?.queueLength === 0}
+                    onClick={() =>
+                      runAction('Shuffle', async () => {
+                        const res = await discordApi.shuffleQueue(guildId, channelId)
+                        setStatus(res)
+                        return res
+                      })
+                    }
+                  >
+                    <Shuffle className="w-3.5 h-3.5 mr-1" /> Shuffle
+                  </button>
+                  <button
+                    type="button"
+                    className="ios-btn-secondary py-1.5 px-3 text-xs flex-1 min-w-[100px]"
+                    disabled={busy !== null}
+                    onClick={() =>
+                      runAction('Clear', async () => {
+                        const res = await discordApi.clearQueue(guildId, channelId, true)
+                        setStatus(res)
+                        return res
+                      })
+                    }
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1" /> Clear
+                  </button>
+              </div>
+
+              <div className="flex gap-3 mt-3 items-center justify-between text-sm bg-black/[0.03] p-2 rounded-xl">
+                 <div className="flex items-center gap-2">
+                     <span className="text-muted font-medium ml-1">Repeat:</span>
+                     <select
+                       className="jukebox-select manage-input text-xs py-1"
+                       value={status?.settings?.repeat || 'off'}
+                       onChange={(e) => {
+                          runAction('Repeat', async () => {
+                             const res = await discordApi.repeatMusic(guildId, channelId, e.target.value as any)
+                             setStatus(res)
+                             return res
+                          })
+                       }}
+                       disabled={busy !== null}
+                     >
+                        <option value="off">Off</option>
+                        <option value="track">Track</option>
+                        <option value="queue">Queue</option>
+                     </select>
+                 </div>
+                 <div className="flex items-center gap-2 mr-1">
+                     <label className="flex items-center gap-2 cursor-pointer text-muted font-medium">
+                         <input
+                           type="checkbox"
+                           checked={status?.settings?.autoplay || false}
+                           disabled={busy !== null}
+                           onChange={(e) => {
+                              runAction('Autoplay', async () => {
+                                 const res = await discordApi.autoplayMusic(guildId, channelId, e.target.checked)
+                                 setStatus(res)
+                                 return res
+                              })
+                           }}
+                           className="w-4 h-4 rounded text-[#007AFF] focus:ring-[#007AFF]"
+                         />
+                         Autoplay
+                     </label>
+                 </div>
               </div>
             </div>
           </section>
@@ -479,7 +575,26 @@ export function JukeboxPage() {
                   <p className="ios-section-title jukebox-queue-title">Up next ({status.queueLength})</p>
                   <div className="jukebox-queue">
                     {status.queue.map((track, i) => (
-                      <TrackRow key={`${track.encoded}-${i}`} track={track} />
+                      <TrackRow
+                        key={`${track.encoded}-${i}`}
+                        track={track}
+                        index={i}
+                        onRemove={() => runAction('Remove', async () => {
+                            const res = await discordApi.removeTrack(guildId, channelId, i)
+                            setStatus(res)
+                            return res
+                        })}
+                        onMoveUp={i > 0 ? () => runAction('MoveUp', async () => {
+                            const res = await discordApi.moveTrack(guildId, channelId, i, i - 1)
+                            setStatus(res)
+                            return res
+                        }) : undefined}
+                        onMoveDown={i < status.queue.length - 1 ? () => runAction('MoveDown', async () => {
+                            const res = await discordApi.moveTrack(guildId, channelId, i, i + 1)
+                            setStatus(res)
+                            return res
+                        }) : undefined}
+                      />
                     ))}
                   </div>
                 </div>

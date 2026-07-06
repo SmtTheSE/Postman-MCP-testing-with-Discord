@@ -12,7 +12,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "mcp": "cd discord-mcp && node mcpServer.js",
-    "mcp:http": "cd discord-mcp && node mcpServer.js --streamable-http"
+    "mcp:http": "cd discord-mcp && node mcpServer.js --streamable-http",
+    "test": "echo \"No tests specified\""
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.2",
