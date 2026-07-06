@@ -428,15 +428,11 @@ export function JukeboxPage() {
 
       {guildId && (
         <section>
-          <div className="flex justify-between items-center pr-2">
-            <p className="ios-section-title">Voice channel</p>
+          <div className="jukebox-section-head">
+            <p className="ios-section-title jukebox-section-head-title">Voice channel</p>
             {channelId && (
-              <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                  connectionState === 'live' ? 'bg-green-100 text-green-700' :
-                  connectionState === 'reconnecting' ? 'bg-yellow-100 text-yellow-700' :
-                  'bg-gray-100 text-gray-500'
-              }`}>
-                {connectionState === 'live' ? 'Live' : connectionState === 'reconnecting' ? 'Reconnecting...' : 'Polling'}
+              <span className={`jukebox-connection-badge jukebox-connection-badge--${connectionState}`}>
+                {connectionState === 'live' ? 'Live' : connectionState === 'reconnecting' ? 'Reconnecting…' : 'Polling'}
               </span>
             )}
           </div>
@@ -502,7 +498,7 @@ export function JukeboxPage() {
         <>
           <section>
             <p className="ios-section-title">Play</p>
-            <p className="text-[13px] text-muted mb-3 px-1">
+            <p className="jukebox-section-hint">
               Paste a YouTube URL or search by song name. If a link fails, try the song title instead.
             </p>
             <div className="jukebox-card">
@@ -529,10 +525,10 @@ export function JukeboxPage() {
                 </button>
               </div>
 
-              <div className="flex gap-2 mt-3 flex-wrap">
+              <div className="jukebox-toolbar">
                   <button
                     type="button"
-                    className="ios-btn-secondary py-1.5 px-3 text-xs flex-1 min-w-[100px]"
+                    className="ios-btn-secondary jukebox-toolbar-btn"
                     disabled={!query.trim() || busy !== null}
                     onClick={() =>
                       runAction('PlayNext', async () => {
@@ -547,7 +543,7 @@ export function JukeboxPage() {
                   </button>
                   <button
                     type="button"
-                    className="ios-btn-secondary py-1.5 px-3 text-xs flex-1 min-w-[100px]"
+                    className="ios-btn-secondary jukebox-toolbar-btn"
                     disabled={busy !== null || status?.queueLength === 0}
                     onClick={() =>
                       runAction('Shuffle', async () => {
@@ -561,7 +557,7 @@ export function JukeboxPage() {
                   </button>
                   <button
                     type="button"
-                    className="ios-btn-secondary py-1.5 px-3 text-xs flex-1 min-w-[100px]"
+                    className="ios-btn-secondary jukebox-toolbar-btn"
                     disabled={busy !== null}
                     onClick={() =>
                       runAction('Clear', async () => {
@@ -575,11 +571,11 @@ export function JukeboxPage() {
                   </button>
               </div>
 
-              <div className="flex gap-3 mt-3 items-center justify-between text-sm bg-black/[0.03] p-2 rounded-xl">
-                 <div className="flex items-center gap-2">
-                     <span className="text-muted font-medium ml-1">Repeat:</span>
+              <div className="jukebox-settings-bar">
+                 <div className="jukebox-settings-group">
+                     <span className="jukebox-settings-label">Repeat</span>
                      <select
-                       className="jukebox-select manage-input text-xs py-1"
+                       className="jukebox-select manage-input jukebox-settings-select"
                        value={status?.settings?.repeat || 'off'}
                        onChange={(e) => {
                           runAction('Repeat', async () => {
@@ -595,16 +591,17 @@ export function JukeboxPage() {
                         <option value="queue">Queue</option>
                      </select>
                  </div>
-                 <div className="flex items-center gap-2">
+                 <div className="jukebox-settings-group">
+                     <span className="jukebox-settings-label">Mood</span>
                      <select
-                         value={status?.settings?.mood || 'normal'}
-                         disabled={busy !== null}
-                         onChange={(e) => runAction('Mood', async () => {
-                             const res = await discordApi.setMood(guildId, channelId, e.target.value)
-                             setStatus(res)
-                             return res
-                         })}
-                         className="ios-input py-1 px-2 text-xs"
+                       className="jukebox-select manage-input jukebox-settings-select"
+                       value={status?.settings?.mood || 'normal'}
+                       disabled={busy !== null}
+                       onChange={(e) => runAction('Mood', async () => {
+                           const res = await discordApi.setMood(guildId, channelId, e.target.value)
+                           setStatus(res)
+                           return res
+                       })}
                      >
                          <option value="normal">Normal</option>
                          <option value="chill">Chill</option>
@@ -613,9 +610,8 @@ export function JukeboxPage() {
                          <option value="8d">8D</option>
                      </select>
                  </div>
-
-                 <div className="flex items-center gap-2 mr-1">
-                     <label className="flex items-center gap-2 cursor-pointer text-muted font-medium">
+                 <div className="jukebox-settings-group">
+                     <label className="jukebox-autoplay-label">
                          <input
                            type="checkbox"
                            checked={status?.settings?.autoplay || false}
@@ -637,27 +633,35 @@ export function JukeboxPage() {
           </section>
 
 
-          {/* Live Activity (Compact) */}
+          {/* Live Activity */}
           {activityLog.length > 0 && (
-             <section className="mb-4">
-                <p className="text-[12px] font-semibold text-muted uppercase tracking-wider mb-2 px-1">Live Activity</p>
-                <div className="bg-white/60 rounded-xl p-3 shadow-sm border border-black/[0.05] max-h-[120px] overflow-y-auto space-y-2">
+             <section className="jukebox-live-section">
+                <p className="jukebox-live-title">Live Activity</p>
+                <div className="jukebox-activity-panel">
                    {activityLog.map((log, i) => (
-                      <div key={i} className="flex items-center text-[13px]">
-                         <span className="text-muted mr-2">{new Date(log.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                         <span className="font-semibold mr-1">{log.username}</span>
-                         <span className="text-black/80">{log.action}</span>
-                         {log.detail && <span className="text-muted ml-1 truncate">— {log.detail}</span>}
+                      <div key={i} className="jukebox-activity-item">
+                         <time className="jukebox-activity-time">
+                           {new Date(log.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                         </time>
+                         <div className="jukebox-activity-body">
+                           <div className="jukebox-activity-meta">
+                             <span className="jukebox-activity-user">{log.username}</span>
+                             <span className="jukebox-activity-action">{log.action}</span>
+                           </div>
+                           {log.detail && (
+                             <p className="jukebox-activity-detail">{log.detail}</p>
+                           )}
+                         </div>
                       </div>
                    ))}
                 </div>
              </section>
           )}
 
-          <div className="flex gap-2 px-1 mb-3">
-             <button onClick={() => setActiveTab('queue')} className={`ios-btn-secondary py-1 px-3 text-xs ${activeTab === 'queue' ? 'bg-black text-white' : ''}`}>Queue</button>
-             <button onClick={() => setActiveTab('history')} className={`ios-btn-secondary py-1 px-3 text-xs ${activeTab === 'history' ? 'bg-black text-white' : ''}`}>History</button>
-             <button onClick={() => setActiveTab('favorites')} className={`ios-btn-secondary py-1 px-3 text-xs ${activeTab === 'favorites' ? 'bg-black text-white' : ''}`}>Favorites</button>
+          <div className="jukebox-tabs">
+             <button type="button" onClick={() => setActiveTab('queue')} className={`ios-btn-secondary jukebox-tab ${activeTab === 'queue' ? 'jukebox-tab-active' : ''}`}>Queue</button>
+             <button type="button" onClick={() => setActiveTab('history')} className={`ios-btn-secondary jukebox-tab ${activeTab === 'history' ? 'jukebox-tab-active' : ''}`}>History</button>
+             <button type="button" onClick={() => setActiveTab('favorites')} className={`ios-btn-secondary jukebox-tab ${activeTab === 'favorites' ? 'jukebox-tab-active' : ''}`}>Favorites</button>
           </div>
 
           <section>
@@ -674,8 +678,15 @@ export function JukeboxPage() {
                     disabled={busy !== null || !status?.connected}
                     onClick={() =>
                       runAction('Skip', async () => {
-                        const res = await discordApi.skipMusic(guildId, channelId)
+                        const res = await discordApi.voteSkipMusic(guildId, channelId)
                         setStatus(res)
+                        if (res.voteSkip && !res.voteSkip.skipped && res.voteSkip.votes != null && res.voteSkip.needed != null) {
+                          showToast({
+                            title: 'Vote recorded',
+                            message: `${res.voteSkip.votes}/${res.voteSkip.needed} votes to skip`,
+                            variant: 'info',
+                          })
+                        }
                         return res
                       })
                     }

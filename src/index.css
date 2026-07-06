@@ -1707,3 +1707,216 @@ input[type='range']::-webkit-slider-thumb {
   flex-direction: column;
   gap: 2px;
 }
+
+.jukebox-connection-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-height: 28px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.jukebox-connection-badge--live {
+  background: rgba(52, 199, 89, 0.16);
+  color: #248a3d;
+}
+
+.jukebox-connection-badge--reconnecting {
+  background: rgba(255, 204, 0, 0.2);
+  color: #9a6700;
+}
+
+.jukebox-connection-badge--offline {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-tertiary);
+}
+
+.jukebox-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-right: 4px;
+  margin-bottom: 10px;
+}
+
+.jukebox-section-head-title {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.jukebox-section-hint {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-bottom: 12px;
+  padding-left: 4px;
+  line-height: 1.5;
+}
+
+.jukebox-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.jukebox-toolbar-btn {
+  flex: 1 1 30%;
+  min-width: 96px;
+  min-height: 44px;
+  padding: 10px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.jukebox-settings-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 18px;
+  padding: 14px 16px;
+  border-radius: var(--radius-glass-xs);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.jukebox-settings-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.jukebox-settings-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.jukebox-settings-select {
+  min-height: 40px !important;
+  min-width: 108px;
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+}
+
+.jukebox-autoplay-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.jukebox-live-section {
+  margin-top: 20px;
+  margin-bottom: 16px;
+}
+
+.jukebox-live-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+
+.jukebox-activity-panel {
+  background: var(--glass-fill-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-glass-sm);
+  padding: 12px;
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--glass-inset);
+}
+
+.jukebox-activity-item {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 10px 12px;
+  align-items: start;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.jukebox-activity-time {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  line-height: 1.35;
+  padding-top: 2px;
+}
+
+.jukebox-activity-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.jukebox-activity-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.jukebox-activity-user {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.jukebox-activity-action {
+  color: var(--text-secondary);
+}
+
+.jukebox-activity-detail {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.jukebox-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 4px;
+  margin-bottom: 14px;
+}
+
+.jukebox-tab {
+  min-height: 38px;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.jukebox-tab-active {
+  background: var(--text-primary) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}

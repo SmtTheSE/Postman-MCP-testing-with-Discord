@@ -247,6 +247,14 @@ export const discordApi = {
     return data
   },
 
+  voteSkipMusic: async (
+    guildId: string,
+    channelId: string,
+  ): Promise<MusicQueueStatus & { voteSkip?: { votes?: number; needed?: number; skipped: boolean; forced?: boolean } }> => {
+    const { data } = await api.post('/music/vote-skip', { guildId, channelId })
+    return data
+  },
+
   pauseMusic: async (guildId: string, channelId: string): Promise<MusicQueueStatus> => {
     const { data } = await api.post('/music/pause', { guildId, channelId })
     return data

@@ -79,6 +79,26 @@ export async function skip(req, res) {
   })
 }
 
+export async function voteSkip(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId, channelId } = parseIds(req.body)
+    const guild = await assertUserInGuild(accessToken, guildId, session?.userId)
+    const result = await music.voteSkipTrack(guildId, channelId, session, guild)
+    if (result.voteSkip?.skipped) {
+      music.logMusicAction(guildId, channelId, actorFromSession(session), 'vote_skipped')
+    } else if (result.voteSkip) {
+      music.logMusicAction(
+        guildId,
+        channelId,
+        actorFromSession(session),
+        'vote_skip',
+        `${result.voteSkip.votes}/${result.voteSkip.needed}`,
+      )
+    }
+    return { success: true, ...result }
+  })
+}
+
 export async function pause(req, res) {
   return withMusicAuth(req, res, async (accessToken, session) => {
     const { guildId, channelId } = parseIds(req.body)
@@ -170,6 +190,16 @@ export async function autoplay(req, res) {
     const { enabled } = req.body
     await assertUserInGuild(accessToken, guildId, session?.userId)
     const status = await music.setAutoplay(guildId, channelId, enabled)
+    return { success: true, ...status }
+  })
+}
+
+export async function mood(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId, channelId } = parseIds(req.body)
+    const { mood: moodValue } = req.body
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    const status = await music.setMood(guildId, channelId, moodValue)
     return { success: true, ...status }
   })
 }
