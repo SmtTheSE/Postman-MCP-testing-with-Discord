@@ -1,117 +1,191 @@
-# VoiceDrop
+# Goofy Discord
 
-Create Discord voice channels from your phone. Sign in with Discord, pick a server, and share a join link with friends — all in seconds, no bot setup needed.
+A mobile-first web app for spinning up Discord voice channels, managing servers, and playing music in voice chat — powered by **Discord OAuth** and **Postman MCP** tools.
 
-## What is VoiceDrop?
+> **Note — project guideline**  
+> This repository is **public source code for learning and sharing**. It is meant to help others explore real-world patterns for **Postman MCP integration** with the Discord REST API — how MCP tools map to API calls, how user OAuth tokens flow through a backend, and how you can build product features on top without reinventing the HTTP layer. Fork, study, and adapt freely; contributions and discussion around MCP + Discord patterns are welcome.
 
-VoiceDrop is a **mobile-first web app** that lets you auto-create Discord voice channels and instantly share the join link. Perfect for that "Hey, are we gonna play?" moment — you sign in, pick a server, and the channel is created directly under your Discord account via OAuth.
+## What is Goofy Discord?
+
+**Goofy Discord** helps gaming groups move fast:
+
+- **Quick Drop** — sign in with Discord, pick a server, create a voice channel, and share a join link in seconds
+- **Server Manage** — list, edit, and delete voice channels on servers you can manage
+- **Jukebox** (Phase 1) — join a voice channel and play music via Lavalink + discord.js
+
+Channel and guild operations run through **Postman MCP** tool definitions in `discord-mcp/`. The Express API injects the signed-in user's OAuth token at runtime so Discord calls use **their** permissions — no manual bot setup for the core flow.
 
 ## Architecture
 
 ```
-voice-drop/
-├── src/                          # Frontend (React + TypeScript + Tailwind)
-│   ├── components/               # UI Components (3-step wizard, guild picker, share)
-│   ├── context/AppContext.tsx     # Global state with localStorage persistence
-│   ├── hooks/                     # Custom hooks (wizard, localStorage)
-│   ├── pages/                     # App pages
-│   ├── services/discordApi.ts    # API layer calling backend
-│   └── App.tsx                    # Root app with routing
-├── api/                          # Backend route handlers (Express)
-│   ├── create-channel.js         # Creates voice channel via MCP (user OAuth)
-│   ├── guilds.js                 # Lists user's Discord guilds via OAuth
-│   └── auth/                     # OAuth flow handlers
-├── lib/                          # Backend libraries
-│   ├── createChannel.js          # MCP-powered channel creation (user token)
-│   ├── mcpRunner.js               # Postman MCP runner with user token injection
-│   ├── discordOAuth.js           # OAuth URL builder, token exchange
-│   ├── session.js                # JWT cookie session management
-│   └── discordEnv.js             # MCP env variable loader
-├── discord-mcp/                  # Postman MCP server + tool definitions
-│   └── tools/                     # MCP tools: create-guild-channel, list-my-guilds, etc.
-├── server/local.js               # Express entry point
-└── dist/                         # Production build
+goofy-discord/
+├── src/                              # Frontend (React 19 + TypeScript + Tailwind v4)
+│   ├── pages/
+│   │   ├── CreateChannelPage.tsx     # 3-step channel wizard + quick drop
+│   │   ├── ServerManagePage.tsx      # Guild channel management
+│   │   └── JukeboxPage.tsx           # Music player UI
+│   ├── components/                   # Wizard steps, alerts, share UI
+│   ├── context/                      # App + alert state
+│   └── services/discordApi.ts        # API client
+├── api/                              # Express route handlers
+│   ├── auth/                         # Discord OAuth (login, callback, session)
+│   ├── create-channel.js             # Create voice channel + invite
+│   ├── guilds.js                     # List user's guilds
+│   ├── channels.js                   # List / update / delete channels
+│   ├── invites.js                    # Guild invite management
+│   └── music.js                      # Jukebox join / play / queue
+├── lib/
+│   ├── mcpRunner.js                  # Injects user or bot token into MCP env
+│   ├── manageChannels.js             # Channel CRUD via MCP tools
+│   ├── guildAuth.js                  # Permission checks against user token
+│   └── music/                        # discord.js + Shoukaku + Lavalink
+├── discord-mcp/                      # Postman MCP server + Discord REST tools
+│   └── tools/pan-mcp/discord-rest-api/
+├── server/
+│   ├── local.js                      # Dev API entry (port 3001)
+│   ├── lavalink/                     # Lavalink runtime (JAR not in git)
+│   └── upgrade-lavalink.sh           # Download Lavalink 4.2+ (DAVE voice)
+└── dist/                             # Production frontend build
 ```
 
-## Tech Stack
+## Postman MCP integration
 
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, React Router v7
-- **Backend**: Express (Node.js), JWT cookies via `jose`
-- **API**: Discord REST API v10 (via Postman MCP tools)
-- **Auth**: Discord OAuth2 with `identify` + `guilds` scopes
-- **Storage**: localStorage for recent channels, JWT cookies for session
+This project is structured as a **reference for Postman MCP + Discord**:
 
-## Flow
+| Layer | Role |
+|-------|------|
+| `discord-mcp/tools/` | Postman-generated MCP tools — one per Discord REST endpoint |
+| `lib/mcpRunner.js` | Sets `pan_mcp_api_key` to the user's OAuth Bearer token (or bot token for jukebox) |
+| `lib/*ViaMcp.js` | Business logic that calls MCP tool modules directly |
+| `api/*.js` | HTTP handlers — auth, validation, error formatting |
 
-1. **User signs in** with Discord OAuth (popup redirect → token stored in JWT cookie)
-2. **User's guilds** are fetched via Postman MCP `list_my_guilds` using the user's Bearer token
-3. **User picks a server** they have Manage Channels permission on
-4. **Channel is created** via Postman MCP `create_guild_channel` using the user's Bearer token
-5. **Invite is generated** via `create_channel_invite` → share link returned
+**User OAuth flow (channel create & manage):**
 
-**No bot token, no bot invite, no manual guild IDs.** All Discord API calls use the signed-in user's OAuth token.
+1. User signs in → access token stored in an HttpOnly JWT cookie
+2. API reads session → `runWithUserToken(token, () => toolFn())`
+3. MCP tool sends the request to `https://discord.com/api/v10` with the user's token
 
-## Quick Start
+**Key MCP tools used:**
 
-### 1. Clone and Install
+- `list_my_guilds` — guild picker
+- `create_guild_channel` — voice channel creation
+- `create_channel_invite` — shareable join link
+- `list_guild_channels`, `update_channel`, `delete_channel` — server manage
+- `list_guild_invites`, `invite_revoke` — invite management
+- `get_guild` — guild metadata
+
+The MCP server can also run standalone: `npm run mcp` or `npm run mcp:http`.
+
+## Tech stack
+
+| Area | Stack |
+|------|--------|
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS v4, React Router v7 |
+| Backend | Express, JWT cookies (`jose`) |
+| Discord API | REST v10 via Postman MCP tools |
+| Auth | Discord OAuth2 (`identify`, `guilds`) |
+| Music | discord.js, Shoukaku, Lavalink 4.2+ (DAVE / E2EE voice) |
+
+## Quick start
+
+### 1. Clone and install
 
 ```bash
+git clone https://github.com/SmtTheSE/Postman-MCP-testing-with-Discord.git
+cd Postman-MCP-testing-with-Discord
 npm install
-cd server && npm install && cd ..
 cd discord-mcp && npm install && cd ..
 ```
 
-### 2. Setup Discord OAuth
+### 2. Discord OAuth app
 
-1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create a New Application → OAuth2 tab
-3. Copy **CLIENT ID** and **CLIENT SECRET**
-4. Add redirect URL: `http://localhost:5173/api/auth/callback`
-5. Save these to `discord-mcp/.env`:
+1. Open the [Discord Developer Portal](https://discord.com/developers/applications)
+2. Create an application → **OAuth2**
+3. Add redirect: `http://localhost:5173/api/auth/callback`
+4. Copy **Client ID** and **Client Secret** into `discord-mcp/.env`:
 
 ```env
 DISCORD_CLIENT_ID=your_client_id
 DISCORD_CLIENT_SECRET=your_client_secret
+SESSION_SECRET=long_random_string
 ```
 
-### 3. Run the App
+### 3. Run the app
 
 ```bash
-# Single command — starts API server + Vite dev server
+# API (3001) + Vite (5173)
 npm run dev
+
+# Or without API file watcher (stable for music debugging)
+npm run dev:stable
 ```
 
-Open http://localhost:5173 on your phone (use your machine's local IP for mobile testing).
+Open http://localhost:5173 — use your machine's LAN IP to test on a phone.
 
-## Environment Variables
+### 4. Jukebox (optional)
+
+Music needs a **bot token** and a local **Lavalink** instance.
+
+1. In the Developer Portal, create a bot under the same (or another) application and copy the token
+2. Add to `discord-mcp/.env`:
+
+```env
+BOT_TOKEN=your_bot_token
+LAVALINK_HOST=localhost:2333
+LAVALINK_PASSWORD=youshallnotpass
+```
+
+3. Install Java 17+, then download Lavalink (requires **4.2+** for Discord DAVE voice):
 
 ```bash
-# discord-mcp/.env (required)
-DISCORD_CLIENT_ID=your_client_id       # From Discord Developer Portal → OAuth2
-DISCORD_CLIENT_SECRET=your_client_secret # From Discord Developer Portal → OAuth2
-
-# Optional
-SESSION_SECRET=your_secret             # JWT signing secret (uses dev default otherwise)
-APP_URL=https://yourdomain.com         # Production origin override
+bash server/upgrade-lavalink.sh
+cd server/lavalink && java -jar Lavalink.jar
 ```
 
-## API Endpoints
+4. Invite the bot to your server with **Connect** and **Speak** permissions
+5. In the app: **Jukebox** → select server & voice channel → **Join** → search or paste a URL → **Play**
+
+Check readiness: `GET /api/health` returns `oauth` and `music.ready` status.
+
+## Environment variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DISCORD_CLIENT_ID` | Yes | OAuth app client ID |
+| `DISCORD_CLIENT_SECRET` | Yes | OAuth app client secret |
+| `SESSION_SECRET` | Recommended | JWT signing secret |
+| `BOT_TOKEN` | Jukebox only | Discord bot token |
+| `LAVALINK_HOST` | Jukebox only | Default `localhost:2333` |
+| `LAVALINK_PASSWORD` | Jukebox only | Default `youshallnotpass` |
+| `APP_URL` | Production | Public origin for OAuth redirects |
+
+See `discord-mcp/.env.example` and `.env.example` for templates.
+
+## API endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET    | `/api/auth/status` | Check OAuth configuration readiness |
-| GET    | `/api/auth/discord` | Redirect to Discord OAuth consent page |
-| GET    | `/api/auth/callback` | Handle OAuth redirect, exchange code, store JWT |
-| GET    | `/api/auth/me` | Return current user from session cookie |
-| POST   | `/api/auth/logout` | Clear session cookie |
-| GET    | `/api/guilds` | List user's Discord guilds (requires OAuth session) |
-| POST   | `/api/create-channel` | Create voice channel + invite (requires OAuth session) |
-| GET    | `/api/health` | Health check |
+| GET | `/api/health` | Health, OAuth, and music readiness |
+| GET | `/api/auth/status` | OAuth configuration status |
+| GET | `/api/auth/discord` | Start Discord OAuth |
+| GET | `/api/auth/callback` | OAuth callback |
+| GET | `/api/auth/me` | Current user from session |
+| POST | `/api/auth/logout` | Clear session |
+| GET | `/api/guilds` | User's guilds (Manage Channels filter) |
+| POST | `/api/create-channel` | Create voice channel + invite |
+| GET/POST/PATCH/DELETE | `/api/channels` | List, update, delete channels |
+| GET/POST/DELETE | `/api/invites` | List, create, revoke invites |
+| POST | `/api/music/join` | Bot joins voice channel |
+| POST | `/api/music/play` | Enqueue track (search or URL) |
+| POST | `/api/music/skip` | Skip current track |
+| POST | `/api/music/pause` | Pause / resume |
+| POST | `/api/music/leave` | Leave voice channel |
+| GET | `/api/music/queue` | Queue and now-playing state |
 
-### POST /api/create-channel
+### Example: create channel
 
-Request body (no auth header needed — session cookie handles it):
 ```json
+POST /api/create-channel
 {
   "guildId": "YOUR_SERVER_ID",
   "channelName": "Valorant Squad",
@@ -119,57 +193,41 @@ Request body (no auth header needed — session cookie handles it):
   "description": "Ranked tonight!",
   "memberLimit": 5,
   "bitrate": 64000,
-  "region": "us-east"
+  "region": "us-east",
+  "createCategory": false,
+  "createTextChannel": false,
+  "maxAge": 86400,
+  "maxUses": 0
 }
 ```
-
-Response:
-```json
-{
-  "success": true,
-  "channel": { "id": "...", "name": "...", "type": 2 },
-  "inviteUrl": "https://discord.gg/abc123"
-}
-```
-
-## Mobile First Design
-
-- **Tap targets**: 44px minimum
-- **Safe area**: Respects iOS notch and Android edge-to-edge
-- **No pinch-to-zoom**: `maximum-scale=1`, `user-scalable=no` via viewport meta
-- **Native share**: Uses Web Share API when available (mobile), falls back to clipboard copy
-- **Keyboard-aware**: Input font-size 16px prevents zoom on iOS
-
-## Postman MCP Integration
-
-All Discord API calls flow through Postman MCP tools:
-
-- `list_my_guilds` — fetches user's guilds (user OAuth token)
-- `create_guild_channel` — creates the voice channel (user OAuth token)
-- `create_channel_invite` — generates a shareable invite (user OAuth token)
-- `get_my_oauth2_authorization` — validates OAuth token
-
-The MCP server lives in `discord-mcp/` and runs alongside the Express API via `server/local.js`.
 
 ## Features
 
-- 3-step wizard: Game details → Voice settings → Pick server
-- **OAuth sign-in** — no bot setup, no token pasting
-- **Auto guild list** — your servers shown after sign-in, filtered by Manage Channels permission
-- **Instant share** via Web Share API or clipboard copy
-- **Audio quality** selection (64/96/128 kbps)
-- **Region selection** for optimal voice latency
-- **Member limit** slider
-- **Recent channels** history (last 20, tap to reuse)
-- Responsive design works on any screen
+- **3-step wizard** — game details → voice settings → server picker
+- **Quick Drop** — one-tap presets for common games
+- **Discord OAuth** — no token pasting for channel flows
+- **Server Manage** — edit bitrate, user limit, region; delete channels
+- **Invite management** — view and revoke guild invites
+- **Jukebox** — YouTube search/URL playback in voice (Lavalink)
+- **Recent channels** — reuse last 20 setups from localStorage
+- **Mobile-first UI** — safe areas, 44px tap targets, Web Share API
+- **Rate-limit aware** — cached guild list and friendly 429 messages
 
-## Security Notes
+Voice bitrates are clamped to Discord's per-tier maximum (96 kbps cap in UI).
 
-- OAuth tokens are stored in **HttpOnly JWT cookies** (server-side, not accessible from JS)
-- No Discord tokens are sent to the browser
-- Channel creation uses the **user's own Discord permissions** — only servers they can manage
-- In production, use HTTPS and set `NODE_ENV=production` for Secure cookies
+## Security notes
+
+- OAuth tokens live in **HttpOnly JWT cookies** — never exposed to browser JS
+- Channel operations use the **signed-in user's Discord permissions**
+- Use HTTPS and `NODE_ENV=production` in production for secure cookies
+- Do not commit `discord-mcp/.env`, bot tokens, or Lavalink JARs
+
+## Learning resources
+
+- [Postman MCP documentation](https://learning.postman.com/docs/developer/postman-api/postman-mcp-server/)
+- [Discord REST API](https://discord.com/developers/docs/reference)
+- [Lavalink](https://lavalink.dev/) — audio node for Discord bots
 
 ## License
 
-MIT
+MIT — share and learn freely.
