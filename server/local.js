@@ -60,6 +60,7 @@ startMusicBot().catch((err) => {
 })
 
 app.listen(PORT, () => {
+  startChatPolling();
   console.log(`API (Postman MCP + OAuth) → http://localhost:${PORT}/api/health`)
 }).on('error', (err) => {
   if (err.code === 'EADDRINUSE') {

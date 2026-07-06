@@ -317,3 +317,13 @@ export async function playNextFavorite(req, res) {
     return { success: true, ...status }
   })
 }
+
+export async function settingsAnnounce(req, res) {
+  return withMusicAuth(req, res, async (accessToken, session) => {
+    const { guildId } = parseIds(req.body)
+    const { channelId } = req.body // nullable
+    await assertUserInGuild(accessToken, guildId, session?.userId)
+    setAnnounceChannelId(guildId, channelId || null)
+    return res.json({ success: true, announceChannelId: channelId || null })
+  })
+}

@@ -74,7 +74,7 @@ const collectionVariables = [
  * @param {Object} args - Function arguments
  * @returns {Promise<Object>} API response
  */
-const executeFunction = async ({}) => {
+const executeFunction = async (args) => {
   return executeRequest(requestDefinition, {}, collectionVariables);
 };
 
